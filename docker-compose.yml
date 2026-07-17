@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: meridian_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: meridian
+      POSTGRES_PASSWORD: meridian_dev_password
+      POSTGRES_DB: meridian_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - meridian_pgdata:/var/lib/postgresql/data
+
+volumes:
+  meridian_pgdata:
