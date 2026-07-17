@@ -17,6 +17,6 @@
    docker compose up -d
    ```
 4. Ensure `apps/server/.env` has a `DATABASE_URL` matching the same `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` values used in the root `.env`. For example:
-   ```
-   DATABASE_URL="postgresql://meridian:meridian_dev_password@localhost:5432/meridian_dev"
+   ```dotenv
+   DATABASE_URL="postgresql://meridian:changeme@localhost:5432/meridian_dev"
    ```
