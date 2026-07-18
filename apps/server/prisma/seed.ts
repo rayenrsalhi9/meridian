@@ -6,6 +6,17 @@ import bcrypt from "bcryptjs";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
+function resolveAdminPassword(): string {
+  const envPassword = process.env.ADMIN_INITIAL_PASSWORD;
+  if (envPassword) return envPassword;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "ADMIN_INITIAL_PASSWORD must be set when NODE_ENV=production",
+    );
+  }
+  return "admin123";
+}
+
 const CLAIMS = [
   { key: "USER_MANAGE", description: "Create, read, update, and delete users" },
   {
@@ -62,7 +73,7 @@ async function main() {
   );
 
   console.log("Seeding Admin user...");
-  const passwordHash = await bcrypt.hash("admin123", 12);
+  const passwordHash = await bcrypt.hash(resolveAdminPassword(), 12);
   const adminUser = await prisma.user.upsert({
     where: { email: "admin@meridian.local" },
     update: {},
