@@ -9,12 +9,12 @@ const prisma = new PrismaClient({ adapter });
 function resolveAdminPassword(): string {
   const envPassword = process.env.ADMIN_INITIAL_PASSWORD;
   if (envPassword) return envPassword;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "ADMIN_INITIAL_PASSWORD must be set when NODE_ENV=production",
-    );
+  if (process.env.NODE_ENV === "development") {
+    return "admin123";
   }
-  return "admin123";
+  throw new Error(
+    "ADMIN_INITIAL_PASSWORD must be set in this environment",
+  );
 }
 
 const CLAIMS = [
