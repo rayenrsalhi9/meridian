@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import { logger } from "./lib/logger.js";
 import authRouter from "./routes/auth.js";
 import usersRouter from "./routes/users.js";
+import rolesRouter from "./routes/roles.js";
+import claimsRouter from "./routes/claims.js";
 
 const app = express();
 
@@ -15,6 +17,8 @@ app.use(cookieParser());
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", usersRouter);
+app.use("/api/v1/roles", rolesRouter);
+app.use("/api/v1/claims", claimsRouter);
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
