@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { loginRequestSchema } from "shared";
 import { logger } from "../lib/logger.js";
 import {
@@ -10,6 +11,20 @@ import {
 
 const router = Router();
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "production" ? 10 : 100,
+  keyGenerator: (req) => {
+    const ip = ipKeyGenerator(req);
+    return `${ip}:${(req.body as { email?: string })?.email ?? "unknown"}`;
+  },
+  handler: (_req, res) => {
+    res.status(401).json({ error: "Invalid credentials" });
+  },
+  standardHeaders: false,
+  legacyHeaders: false,
+});
+
 const REFRESH_COOKIE = "refresh_token";
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -19,7 +34,7 @@ const COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   const parsed = loginRequestSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -35,7 +50,7 @@ router.post("/login", async (req, res) => {
   const result = await loginUser(email, password);
 
   if (!result) {
-    logger.info({ email, ip }, "Failed login attempt");
+    logger.info({ ip }, "Failed login attempt");
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }

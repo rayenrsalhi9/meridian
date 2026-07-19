@@ -151,7 +151,7 @@ describe("POST /api/v1/auth/refresh", () => {
     expect(res.body.error).toBe("No refresh token provided");
   });
 
-  it("detects theft: reusing a revoked token revokes all other sessions for that user", async () => {
+  it("handles benign race: immediate reuse within grace period does not mass-revoke", async () => {
     const loginA = await request(app)
       .post("/api/v1/auth/login")
       .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
@@ -164,28 +164,70 @@ describe("POST /api/v1/auth/refresh", () => {
     const cookieB = extractCookie(loginB.headers["set-cookie"], "refresh_token");
     expect(cookieB).toBeDefined();
 
-    expect(cookieA).not.toBe(cookieB);
-
     // Rotate cookieA — normal flow
     const refreshRes = await request(app)
       .post("/api/v1/auth/refresh")
       .set("Cookie", `refresh_token=${cookieA}`);
     expect(refreshRes.status).toBe(200);
 
-    // Reuse revoked cookieA — triggers theft detection
+    // Immediately reuse revoked cookieA — benign race within grace period
     const reuseRes = await request(app)
       .post("/api/v1/auth/refresh")
       .set("Cookie", `refresh_token=${cookieA}`);
     expect(reuseRes.status).toBe(401);
 
-    // cookieB's token should also be revoked in the DB
+    // cookieB should NOT be revoked (within grace period)
     const { createHash } = await import("node:crypto");
     const hashB = createHash("sha256").update(cookieB!).digest("hex");
     const tokenB = await prisma.refreshToken.findFirst({
       where: { tokenHash: hashB },
     });
     expect(tokenB).toBeDefined();
-    expect(tokenB!.revokedAt).not.toBeNull();
+    expect(tokenB!.revokedAt).toBeNull();
+  });
+
+  it("detects theft: reusing a revoked token after grace period revokes all other sessions", async () => {
+    const { authConfig } = await import("../lib/auth.js");
+    const origGrace = authConfig.refreshGracePeriodMs;
+    authConfig.refreshGracePeriodMs = 0;
+    try {
+      const loginA = await request(app)
+        .post("/api/v1/auth/login")
+        .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
+      const cookieA = extractCookie(loginA.headers["set-cookie"], "refresh_token");
+      expect(cookieA).toBeDefined();
+
+      const loginB = await request(app)
+        .post("/api/v1/auth/login")
+        .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
+      const cookieB = extractCookie(loginB.headers["set-cookie"], "refresh_token");
+      expect(cookieB).toBeDefined();
+
+      expect(cookieA).not.toBe(cookieB);
+
+      // Rotate cookieA — normal flow
+      const refreshRes = await request(app)
+        .post("/api/v1/auth/refresh")
+        .set("Cookie", `refresh_token=${cookieA}`);
+      expect(refreshRes.status).toBe(200);
+
+      // Reuse revoked cookieA — triggers theft detection
+      const reuseRes = await request(app)
+        .post("/api/v1/auth/refresh")
+        .set("Cookie", `refresh_token=${cookieA}`);
+      expect(reuseRes.status).toBe(401);
+
+      // cookieB's token should also be revoked in the DB
+      const { createHash } = await import("node:crypto");
+      const hashB = createHash("sha256").update(cookieB!).digest("hex");
+      const tokenB = await prisma.refreshToken.findFirst({
+        where: { tokenHash: hashB },
+      });
+      expect(tokenB).toBeDefined();
+      expect(tokenB!.revokedAt).not.toBeNull();
+    } finally {
+      authConfig.refreshGracePeriodMs = origGrace;
+    }
   });
 });
 

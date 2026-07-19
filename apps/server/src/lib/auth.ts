@@ -13,6 +13,12 @@ const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 const BCRYPT_ROUNDS = 12;
 
+const DUMMY_PASSWORD_HASH = "$2b$12$QKooj7sysm30Ge8qpcopGeFnzts.kwkcyUJvYoAW3PFiAuziXMD02";
+
+export const authConfig = {
+  refreshGracePeriodMs: 10_000,
+};
+
 export interface AccessTokenPayload {
   sub: string;
   roles: string[];
@@ -80,11 +86,14 @@ export async function rotateRefreshToken(
     const revoked = await prisma.refreshToken.findFirst({
       where: { tokenHash: oldHash },
     });
-    if (revoked && revoked.revokedAt) {
-      await prisma.refreshToken.updateMany({
-        where: { userId: revoked.userId, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
+    if (revoked?.revokedAt) {
+      const timeSinceRevocation = Date.now() - revoked.revokedAt.getTime();
+      if (timeSinceRevocation > authConfig.refreshGracePeriodMs) {
+        await prisma.refreshToken.updateMany({
+          where: { userId: revoked.userId, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+      }
     }
     return null;
   }
@@ -112,7 +121,10 @@ export async function loginUser(
     include: { userRoles: { select: { roleId: true } } },
   });
 
-  if (!user) return null;
+  if (!user) {
+    await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+    return null;
+  }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) return null;

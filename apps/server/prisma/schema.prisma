@@ -60,7 +60,7 @@ model RoleClaim {
 
 model RefreshToken {
   id        String   @id @default(uuid())
-  tokenHash String
+  tokenHash String   @unique
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
@@ -68,5 +68,4 @@ model RefreshToken {
   revokedAt DateTime?
 
   @@index([userId])
-  @@index([tokenHash])
 }
