@@ -105,7 +105,7 @@ export async function updateRole(
         .filter((rc: { claim: { key: string } }) => ADMIN_CLAIMS.has(rc.claim.key))
         .map((rc: { claim: { key: string } }) => rc.claim.key);
 
-      const newClaimRecords = await prisma.claim.findMany({
+      const newClaimRecords = await tx.claim.findMany({
         where: { id: { in: data.claimIds } },
         select: { key: true },
       });

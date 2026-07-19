@@ -93,6 +93,7 @@ function roleTx(overrides?: Record<string, unknown>) {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     user: { findMany: vi.fn() },
+    claim: { findMany: vi.fn() },
     ...overrides,
   };
 }
@@ -261,9 +262,9 @@ describe("Roles API", () => {
       });
       vi.mocked(prisma.roleClaim.findMany)
         .mockResolvedValueOnce(ADMIN_CLAIMS);
-      vi.mocked(prisma.claim.findMany).mockResolvedValueOnce([
+      tx.claim.findMany.mockResolvedValueOnce([
         { id: CLAIM_ID_1, key: "USER_MANAGE" },
-      ] as never);
+      ]);
       mockTransactionCallback(tx);
       vi.mocked(prisma.role.findUnique).mockResolvedValueOnce({
         id: ROLE_ID_1, name: "New Name", description: "Updated desc",
@@ -296,9 +297,9 @@ describe("Roles API", () => {
       });
       vi.mocked(prisma.roleClaim.findMany)
         .mockResolvedValueOnce(ADMIN_CLAIMS);
-      vi.mocked(prisma.claim.findMany).mockResolvedValueOnce([
+      tx.claim.findMany.mockResolvedValueOnce([
         { id: CLAIM_ID_1, key: "USER_MANAGE" },
-      ] as never);
+      ]);
       mockTransactionCallback(tx);
       vi.mocked(prisma.role.findUnique).mockResolvedValueOnce({
         id: ROLE_ID_1, name: "Updated",
@@ -359,9 +360,9 @@ describe("Roles API", () => {
       vi.mocked(prisma.roleClaim.findMany)
         .mockResolvedValueOnce(ADMIN_CLAIMS)     // for requireClaim
         .mockResolvedValueOnce([] as never);       // for resolveClaims([ROLE_ID_2])
-      vi.mocked(prisma.claim.findMany).mockResolvedValueOnce([
+      tx.claim.findMany.mockResolvedValueOnce([
         { id: CLAIM_ID_3, key: "DOCUMENT_CREATE" },
-      ] as never);
+      ]);
       mockTransactionCallback(tx);
 
       const res = await request(app)
@@ -705,7 +706,9 @@ describe("Users API", () => {
 
     it("rejects role assignment without ROLE_MANAGE (privilege escalation) - POST", async () => {
       const userOnlyToken = signAccessToken("user-mgr", ["user-mgr-role"]);
-      mockNoClaims();
+      vi.mocked(prisma.roleClaim.findMany).mockResolvedValue([
+        { id: "rc-um", roleId: "user-mgr-role", claimId: "c-um", createdAt: new Date(), claim: { key: "USER_MANAGE" } },
+      ] as never);
 
       const res = await request(app)
         .post("/api/v1/users")
@@ -717,7 +720,9 @@ describe("Users API", () => {
 
     it("rejects role assignment in PUT without ROLE_MANAGE (privilege escalation)", async () => {
       const userOnlyToken = signAccessToken("user-mgr", ["user-mgr-role"]);
-      mockNoClaims();
+      vi.mocked(prisma.roleClaim.findMany).mockResolvedValue([
+        { id: "rc-um", roleId: "user-mgr-role", claimId: "c-um", createdAt: new Date(), claim: { key: "USER_MANAGE" } },
+      ] as never);
 
       const res = await request(app)
         .put(`/api/v1/users/${USER_ID_1}`)

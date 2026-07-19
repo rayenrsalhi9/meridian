@@ -79,7 +79,7 @@ router.post(
 );
 
 router.put("/:id", requireAuth, requireClaim("USER_MANAGE"), async (req, res, next) => {
-  if (req.body.roleIds !== undefined) {
+  if (req.body?.roleIds !== undefined) {
     return requireClaim("ROLE_MANAGE")(req, res, next);
   }
   next();
