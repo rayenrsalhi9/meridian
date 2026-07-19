@@ -16,6 +16,7 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   userRoles    UserRole[]
+  refreshTokens RefreshToken[]
 }
 
 model Role {
@@ -55,4 +56,16 @@ model RoleClaim {
   claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, claimId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  @@index([userId])
 }
