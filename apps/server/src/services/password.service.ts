@@ -25,15 +25,16 @@ export async function changeUserPassword(
   }
 
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-  await prisma.user.update({
-    where: { id: userId },
-    data: { passwordHash },
-  });
-
-  await prisma.refreshToken.updateMany({
-    where: { userId, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    }),
+    prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
 
   logger.info({ userId }, "Password changed successfully");
   return { success: true };
@@ -54,15 +55,16 @@ export async function resetUserPassword(
   }
 
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-  await prisma.user.update({
-    where: { id: userId },
-    data: { passwordHash },
-  });
-
-  await prisma.refreshToken.updateMany({
-    where: { userId, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    }),
+    prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
 
   logger.info({ userId }, "Password reset by admin");
   return { success: true };
