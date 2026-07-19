@@ -54,25 +54,36 @@ router.get("/:id", requireAuth, requireClaim("USER_MANAGE"), async (req, res) =>
   res.json(user);
 });
 
-router.post("/", requireAuth, requireClaim("USER_MANAGE"), async (req, res) => {
-  const parsed = createUserSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
-    return;
-  }
+router.post(
+  "/",
+  requireAuth,
+  requireClaim("USER_MANAGE"),
+  requireClaim("ROLE_MANAGE"),
+  async (req, res) => {
+    const parsed = createUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      });
+      return;
+    }
 
-  const result = await createUser(parsed.data);
-  if ("error" in result) {
-    res.status(409).json({ error: result.error });
-    return;
-  }
-  res.status(201).json(result);
-});
+    const result = await createUser(parsed.data);
+    if ("error" in result) {
+      res.status(409).json({ error: result.error });
+      return;
+    }
+    res.status(201).json(result);
+  },
+);
 
-router.put("/:id", requireAuth, requireClaim("USER_MANAGE"), async (req, res) => {
+router.put("/:id", requireAuth, requireClaim("USER_MANAGE"), async (req, res, next) => {
+  if (req.body.roleIds !== undefined) {
+    return requireClaim("ROLE_MANAGE")(req, res, next);
+  }
+  next();
+}, async (req, res) => {
   const parsed = updateUserSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -84,7 +95,12 @@ router.put("/:id", requireAuth, requireClaim("USER_MANAGE"), async (req, res) =>
 
   const result = await updateUser(req.params.id as string, parsed.data);
   if ("error" in result) {
-    const status = result.error === "User not found" ? 404 : 409;
+    const status =
+      result.error === "User not found"
+        ? 404
+        : result.error === "Email already in use"
+          ? 409
+          : 400;
     res.status(status).json({ error: result.error });
     return;
   }
@@ -98,8 +114,14 @@ router.delete(
   async (req, res) => {
     const result = await deactivateUser(req.params.id as string);
     if ("error" in result) {
-      const status =
-        result.error === "User not found" ? 404 : result.error === "User is already deactivated" ? 400 : 400;
+      let status: number;
+      if (result.error === "User not found") {
+        status = 404;
+      } else if (result.error === "User is already deactivated") {
+        status = 409;
+      } else {
+        status = 400;
+      }
       res.status(status).json({ error: result.error });
       return;
     }

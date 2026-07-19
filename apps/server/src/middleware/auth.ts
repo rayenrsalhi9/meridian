@@ -19,22 +19,24 @@ export async function requireAuth(
   // MVP simplicity. If this becomes a bottleneck, introduce a cache layer
   // (e.g., Redis) rather than removing the check — JWT-only verification
   // would miss users deactivated after the token was issued.
+  let payload: { sub: string; roles: string[] };
   try {
-    const payload = verifyAccessToken(token);
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: { isActive: true },
-    });
-
-    if (!user || !user.isActive) {
-      res.status(401).json({ error: "Invalid or expired token" });
-      return;
-    }
-
-    req.user = { userId: payload.sub, roleIds: payload.roles };
-    next();
+    payload = verifyAccessToken(token);
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });
+    return;
   }
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.sub },
+    select: { isActive: true },
+  });
+
+  if (!user || !user.isActive) {
+    res.status(401).json({ error: "Invalid or expired token" });
+    return;
+  }
+
+  req.user = { userId: payload.sub, roleIds: payload.roles };
+  next();
 }

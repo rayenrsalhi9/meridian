@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createRoleSchema, updateRoleSchema } from "shared";
 import { requireAuth } from "../middleware/auth.js";
 import { requireClaim } from "../middleware/requireClaim.js";
+import { Prisma } from "../generated/prisma/client.js";
 import {
   listRoles,
   getRole,
@@ -9,6 +10,12 @@ import {
   updateRole,
   deleteRole,
 } from "../services/role.service.js";
+
+function isUniqueConstraintError(err: unknown): err is Prisma.PrismaClientKnownRequestError {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002"
+  );
+}
 
 const router = Router();
 
@@ -42,11 +49,7 @@ router.post("/", async (req, res) => {
     const role = await createRole(parsed.data);
     res.status(201).json(role);
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      "code" in err &&
-      (err as { code: string }).code === "P2002"
-    ) {
+    if (isUniqueConstraintError(err)) {
       res.status(409).json({ error: "A role with this name already exists" });
       return;
     }
@@ -65,18 +68,18 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
-    const role = await updateRole(req.params.id, parsed.data);
-    if (!role) {
+    const result = await updateRole(req.params.id, parsed.data);
+    if (!result) {
       res.status(404).json({ error: "Role not found" });
       return;
     }
-    res.json(role);
+    if ("error" in result) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    res.json(result);
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      "code" in err &&
-      (err as { code: string }).code === "P2002"
-    ) {
+    if (isUniqueConstraintError(err)) {
       res.status(409).json({ error: "A role with this name already exists" });
       return;
     }
@@ -87,7 +90,8 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   const result = await deleteRole(req.params.id);
   if ("error" in result) {
-    res.status(404).json({ error: result.error });
+    const statusCode = result.error === "Role not found" ? 404 : 400;
+    res.status(statusCode).json({ error: result.error });
     return;
   }
   res.status(204).end();

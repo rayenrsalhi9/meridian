@@ -73,6 +73,45 @@ function mockNoClaims() {
   vi.mocked(prisma.roleClaim.findMany).mockResolvedValue([] as never);
 }
 
+/** Create a $transaction mock that invokes the callback with a fake tx object */
+function mockTransactionCallback(tx: Record<string, unknown>) {
+  (prisma.$transaction as any).mockImplementation(
+    async (fn: (tx: unknown) => unknown) => fn(tx),
+  );
+}
+
+/** Build a tx object with mock methods for role tests */
+function roleTx(overrides?: Record<string, unknown>) {
+  return {
+    role: {
+      findUnique: vi.fn(),
+      update: vi.fn().mockResolvedValue(undefined),
+    },
+    roleClaim: {
+      findMany: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+      createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    user: { findMany: vi.fn() },
+    ...overrides,
+  };
+}
+
+/** Build a tx object with mock methods for user tests */
+function userTx(overrides?: Record<string, unknown>) {
+  return {
+    user: {
+      findMany: vi.fn(),
+      update: vi.fn().mockResolvedValue(undefined),
+    },
+    userRole: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+      createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   resetForTests();
   vi.resetAllMocks();
@@ -208,12 +247,24 @@ describe("Roles API", () => {
 
   describe("PUT /api/v1/roles/:id", () => {
     it("updates role name, description, and claims", async () => {
-      mockAdminClaims();
-      vi.mocked(prisma.role.findUnique).mockResolvedValueOnce({ id: ROLE_ID_1, name: "Old Name" } as never);
-      vi.mocked(prisma.role.update).mockResolvedValue({
-        id: ROLE_ID_1, name: "New Name", description: "Updated desc",
-        createdAt: new Date(), updatedAt: new Date(),
-      } as never);
+      const tx = roleTx({
+        role: {
+          findUnique: vi.fn().mockResolvedValueOnce({ id: ROLE_ID_1, name: "Old Name" }),
+          update: vi.fn().mockResolvedValue(undefined),
+        },
+        roleClaim: {
+          findMany: vi.fn().mockResolvedValueOnce([]),
+          deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+          createMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        user: { findMany: vi.fn().mockResolvedValueOnce([]) },
+      });
+      vi.mocked(prisma.roleClaim.findMany)
+        .mockResolvedValueOnce(ADMIN_CLAIMS);
+      vi.mocked(prisma.claim.findMany).mockResolvedValueOnce([
+        { id: CLAIM_ID_1, key: "USER_MANAGE" },
+      ] as never);
+      mockTransactionCallback(tx);
       vi.mocked(prisma.role.findUnique).mockResolvedValueOnce({
         id: ROLE_ID_1, name: "New Name", description: "Updated desc",
         createdAt: new Date(), updatedAt: new Date(),
@@ -231,11 +282,24 @@ describe("Roles API", () => {
     });
 
     it("invalidates cache after update", async () => {
-      mockAdminClaims();
-      vi.mocked(prisma.role.findUnique).mockResolvedValueOnce({ id: ROLE_ID_1, name: "Some Role" } as never);
-      vi.mocked(prisma.role.update).mockResolvedValue({
-        id: ROLE_ID_1, name: "Updated", createdAt: new Date(), updatedAt: new Date(),
-      } as never);
+      const tx = roleTx({
+        role: {
+          findUnique: vi.fn().mockResolvedValueOnce({ id: ROLE_ID_1, name: "Some Role" }),
+          update: vi.fn().mockResolvedValue(undefined),
+        },
+        roleClaim: {
+          findMany: vi.fn().mockResolvedValueOnce([]),
+          deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+          createMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        user: { findMany: vi.fn().mockResolvedValueOnce([]) },
+      });
+      vi.mocked(prisma.roleClaim.findMany)
+        .mockResolvedValueOnce(ADMIN_CLAIMS);
+      vi.mocked(prisma.claim.findMany).mockResolvedValueOnce([
+        { id: CLAIM_ID_1, key: "USER_MANAGE" },
+      ] as never);
+      mockTransactionCallback(tx);
       vi.mocked(prisma.role.findUnique).mockResolvedValueOnce({
         id: ROLE_ID_1, name: "Updated",
         roleClaims: [], userRoles: [],
@@ -259,13 +323,54 @@ describe("Roles API", () => {
     });
 
     it("returns 404 for non-existent role", async () => {
-      mockAdminClaims();
-      vi.mocked(prisma.role.findUnique).mockResolvedValue(null);
+      const tx = roleTx({
+        role: { findUnique: vi.fn().mockResolvedValueOnce(null) },
+      });
+      vi.mocked(prisma.roleClaim.findMany)
+        .mockResolvedValueOnce(ADMIN_CLAIMS);
+      mockTransactionCallback(tx);
       const res = await request(app)
         .put("/api/v1/roles/nonexistent")
         .set("Authorization", `Bearer ${adminToken}`)
         .send({ name: "New Name", claimIds: [CLAIM_ID_1] });
       expect(res.status).toBe(404);
+    });
+
+    it("blocks removing admin claims from role when it would leave zero admins", async () => {
+      const tx = roleTx({
+        role: {
+          findUnique: vi.fn().mockResolvedValueOnce({ id: ADMIN_ROLE_ID, name: "Admin" }),
+          update: vi.fn(),
+        },
+        roleClaim: {
+          findMany: vi.fn().mockResolvedValueOnce(ADMIN_CLAIMS),
+          deleteMany: vi.fn(),
+          createMany: vi.fn(),
+        },
+        user: {
+          findMany: vi.fn()
+            .mockResolvedValueOnce([
+              { id: USER_ID_1, userRoles: [{ roleId: ADMIN_ROLE_ID }, { roleId: ROLE_ID_2 }] },
+              { id: USER_ID_2, userRoles: [{ roleId: ADMIN_ROLE_ID }] },
+            ] as never)
+            .mockResolvedValueOnce([] as never),
+        },
+      });
+      vi.mocked(prisma.roleClaim.findMany)
+        .mockResolvedValueOnce(ADMIN_CLAIMS)     // for requireClaim
+        .mockResolvedValueOnce([] as never);       // for resolveClaims([ROLE_ID_2])
+      vi.mocked(prisma.claim.findMany).mockResolvedValueOnce([
+        { id: CLAIM_ID_3, key: "DOCUMENT_CREATE" },
+      ] as never);
+      mockTransactionCallback(tx);
+
+      const res = await request(app)
+        .put(`/api/v1/roles/${ADMIN_ROLE_ID}`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ claimIds: [CLAIM_ID_3] });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe("Cannot remove administrative privileges from the last admin user");
     });
   });
 
@@ -275,12 +380,13 @@ describe("Roles API", () => {
       vi.mocked(prisma.role.findUnique).mockResolvedValue({ id: ROLE_ID_1, name: "ToDelete" } as never);
 
       const txMock = {
+        user: { findMany: vi.fn() },
         userRole: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
         roleClaim: { deleteMany: vi.fn().mockResolvedValue({ count: 3 }) },
         role: { delete: vi.fn().mockResolvedValue({ id: ROLE_ID_1 }) },
       };
       (prisma.$transaction as any).mockImplementation(
-        async (fn: (tx: typeof txMock) => Promise<void>) => { await fn(txMock); },
+        async (fn: (tx: typeof txMock) => unknown) => fn(txMock),
       );
 
       const res = await request(app)
@@ -301,6 +407,75 @@ describe("Roles API", () => {
         .delete("/api/v1/roles/nonexistent")
         .set("Authorization", `Bearer ${adminToken}`);
       expect(res.status).toBe(404);
+    });
+
+    it("blocks deleting role that is the last source of admin claims", async () => {
+      mockAdminClaims();
+      vi.mocked(prisma.role.findUnique).mockResolvedValueOnce({ id: ADMIN_ROLE_ID, name: "Admin" } as never);
+
+      const tx = {
+        user: {
+          findMany: vi.fn()
+            .mockResolvedValueOnce([
+              { id: USER_ID_1, userRoles: [{ roleId: ADMIN_ROLE_ID }] },
+            ] as never),
+        },
+        userRole: { deleteMany: vi.fn() },
+        roleClaim: { deleteMany: vi.fn() },
+        role: { delete: vi.fn() },
+      };
+      (prisma.$transaction as any).mockImplementation(
+        async (fn: (tx: typeof tx) => unknown) => fn(tx),
+      );
+
+      const res = await request(app)
+        .delete(`/api/v1/roles/${ADMIN_ROLE_ID}`)
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe("Cannot remove administrative privileges from the last admin user");
+      expect(tx.role.delete).not.toHaveBeenCalled();
+      expect(tx.userRole.deleteMany).not.toHaveBeenCalled();
+      expect(tx.roleClaim.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it("deletes role with admin claims when another user independently has admin", async () => {
+      const OTHER_ADMIN_CLAIMS = [
+        { id: "rc-other", roleId: ROLE_ID_2, claimId: CLAIM_ID_4, createdAt: new Date(), claim: { key: "ROLE_MANAGE" } },
+      ] as never;
+      vi.mocked(prisma.roleClaim.findMany)
+        .mockResolvedValueOnce(ADMIN_CLAIMS)      // for requireClaim
+        .mockResolvedValueOnce(OTHER_ADMIN_CLAIMS); // for resolveClaims([ROLE_ID_2])
+
+      vi.mocked(prisma.role.findUnique).mockResolvedValueOnce({ id: ADMIN_ROLE_ID, name: "Admin" } as never);
+
+      const tx = {
+        user: {
+          findMany: vi.fn()
+            .mockResolvedValueOnce([
+              { id: USER_ID_1, userRoles: [{ roleId: ADMIN_ROLE_ID }] },
+              { id: USER_ID_2, userRoles: [{ roleId: ROLE_ID_2 }] },
+            ] as never)
+            .mockResolvedValueOnce([
+              { id: USER_ID_2, userRoles: [{ roleId: ROLE_ID_2 }] },
+            ] as never),
+        },
+        userRole: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
+        roleClaim: { deleteMany: vi.fn().mockResolvedValue({ count: 3 }) },
+        role: { delete: vi.fn().mockResolvedValue({ id: ADMIN_ROLE_ID }) },
+      };
+      (prisma.$transaction as any).mockImplementation(
+        async (fn: (tx: typeof tx) => unknown) => fn(tx),
+      );
+
+      const res = await request(app)
+        .delete(`/api/v1/roles/${ADMIN_ROLE_ID}`)
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(204);
+      expect(tx.role.delete).toHaveBeenCalledWith({ where: { id: ADMIN_ROLE_ID } });
+      expect(tx.userRole.deleteMany).toHaveBeenCalledWith({ where: { roleId: ADMIN_ROLE_ID } });
+      expect(tx.roleClaim.deleteMany).toHaveBeenCalledWith({ where: { roleId: ADMIN_ROLE_ID } });
     });
   });
 });
@@ -475,12 +650,15 @@ describe("Users API", () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ isActive: true } as never);
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: USER_ID_1, email: "old@test.com" } as never);
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null);
-      (prisma.$transaction as any).mockImplementation(
-        async (fn: (tx: unknown) => unknown) => fn({
-          user: { update: vi.fn().mockResolvedValue(undefined) },
-          userRole: { deleteMany: vi.fn(), createMany: vi.fn() },
-        }),
-      );
+      const tx = userTx({
+        user: {
+          findMany: vi.fn().mockResolvedValueOnce([
+            { id: "other-admin", userRoles: [{ roleId: ADMIN_ROLE_ID }] },
+          ] as never),
+          update: vi.fn().mockResolvedValue(undefined),
+        },
+      });
+      mockTransactionCallback(tx);
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
         id: USER_ID_1, email: "updated@test.com", firstName: "Updated",
         lastName: "User", isActive: true, createdAt: new Date(), updatedAt: new Date(),
@@ -500,12 +678,7 @@ describe("Users API", () => {
       mockAdminClaims();
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ isActive: true } as never);
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: USER_ID_1, email: "test@test.com" } as never);
-      (prisma.$transaction as any).mockImplementation(
-        async (fn: (tx: unknown) => unknown) => fn({
-          user: { update: vi.fn().mockResolvedValue(undefined) },
-          userRole: { deleteMany: vi.fn(), createMany: vi.fn() },
-        }),
-      );
+      mockTransactionCallback(userTx());
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
         id: USER_ID_1, email: "test@test.com", firstName: "NewName",
         lastName: "User", isActive: true, createdAt: new Date(), updatedAt: new Date(), userRoles: [],
@@ -529,25 +702,100 @@ describe("Users API", () => {
         .send({ firstName: "Test" });
       expect(res.status).toBe(404);
     });
+
+    it("rejects role assignment without ROLE_MANAGE (privilege escalation) - POST", async () => {
+      const userOnlyToken = signAccessToken("user-mgr", ["user-mgr-role"]);
+      mockNoClaims();
+
+      const res = await request(app)
+        .post("/api/v1/users")
+        .set("Authorization", `Bearer ${userOnlyToken}`)
+        .send({ email: "test@test.com", firstName: "Test", lastName: "User", password: "password123", roleIds: [ROLE_ID_2] });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe("Insufficient permissions");
+    });
+
+    it("rejects role assignment in PUT without ROLE_MANAGE (privilege escalation)", async () => {
+      const userOnlyToken = signAccessToken("user-mgr", ["user-mgr-role"]);
+      mockNoClaims();
+
+      const res = await request(app)
+        .put(`/api/v1/users/${USER_ID_1}`)
+        .set("Authorization", `Bearer ${userOnlyToken}`)
+        .send({ firstName: "Test", roleIds: [ROLE_ID_2] });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe("Insufficient permissions");
+    });
+
+    it("allows non-role field update without ROLE_MANAGE", async () => {
+      vi.mocked(prisma.roleClaim.findMany).mockResolvedValueOnce([
+        { id: "rc-um", roleId: "user-mgr-role", claimId: "c-um", createdAt: new Date(), claim: { key: "USER_MANAGE" } },
+      ] as never);
+      const userOnlyToken = signAccessToken("user-mgr", ["user-mgr-role"]);
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ isActive: true } as never);
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: USER_ID_1, email: "old@test.com" } as never);
+      mockTransactionCallback(userTx());
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
+        id: USER_ID_1, email: "updated@test.com", firstName: "Updated",
+        lastName: "User", isActive: true, createdAt: new Date(), updatedAt: new Date(), userRoles: [],
+      } as never);
+
+      const res = await request(app)
+        .put(`/api/v1/users/${USER_ID_1}`)
+        .set("Authorization", `Bearer ${userOnlyToken}`)
+        .send({ firstName: "Updated" });
+      expect(res.status).toBe(200);
+    });
+
+    it("blocks removing last admin via role replacement in updateUser", async () => {
+      mockAdminClaims();
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ isActive: true } as never);
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: USER_ID_1, email: "admin@test.com" } as never);
+      const tx = userTx({
+        user: {
+          findMany: vi.fn().mockResolvedValueOnce([] as never),
+          update: vi.fn(),
+        },
+        userRole: { deleteMany: vi.fn(), createMany: vi.fn() },
+      });
+      mockTransactionCallback(tx);
+
+      const res = await request(app)
+        .put(`/api/v1/users/${USER_ID_1}`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ roleIds: [ROLE_ID_2] });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe("Cannot remove administrative privileges from the last admin user");
+    });
   });
 
   describe("DELETE /api/v1/users/:id", () => {
     it("soft-deletes a user and revokes refresh tokens", async () => {
       mockAdminClaims();
-      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: USER_ID_1, isActive: true } as never);
-      vi.mocked(prisma.user.findMany).mockResolvedValue([
-        { id: "other-admin", userRoles: [{ roleId: ADMIN_ROLE_ID }] },
-      ] as never);
+      const tx = {
+        user: {
+          findUnique: vi.fn().mockResolvedValueOnce({ id: USER_ID_1, isActive: true }),
+          findMany: vi.fn().mockResolvedValueOnce([
+            { id: "other-admin", userRoles: [{ roleId: ADMIN_ROLE_ID }] },
+          ]),
+          update: vi.fn().mockResolvedValue(undefined),
+        },
+        userRole: {
+          findMany: vi.fn().mockResolvedValueOnce([{ roleId: ADMIN_ROLE_ID }] as never),
+        },
+        refreshToken: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      };
+      mockTransactionCallback(tx);
 
       const res = await request(app)
         .delete(`/api/v1/users/${USER_ID_1}`)
         .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(204);
-      expect(prisma.user.update).toHaveBeenCalledWith(
+      expect(tx.user.update).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: USER_ID_1 }, data: { isActive: false } }),
       );
-      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+      expect(tx.refreshToken.updateMany).toHaveBeenCalledWith({
         where: { userId: USER_ID_1, revokedAt: null },
         data: { revokedAt: expect.any(Date) },
       });
@@ -555,31 +803,48 @@ describe("Users API", () => {
 
     it("blocks deactivation of the last user with admin claims", async () => {
       mockAdminClaims();
-      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: USER_ID_1, isActive: true } as never);
-      vi.mocked(prisma.user.findMany).mockResolvedValue([] as never);
+      const tx = {
+        user: {
+          findUnique: vi.fn().mockResolvedValueOnce({ id: USER_ID_1, isActive: true }),
+          findMany: vi.fn().mockResolvedValueOnce([]),
+        },
+        userRole: {
+          findMany: vi.fn().mockResolvedValueOnce([{ roleId: ADMIN_ROLE_ID }] as never),
+        },
+      };
+      mockTransactionCallback(tx);
 
       const res = await request(app)
         .delete(`/api/v1/users/${USER_ID_1}`)
         .set("Authorization", `Bearer ${adminToken}`);
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain("Cannot deactivate");
+      expect(res.body.error).toBe("Cannot remove administrative privileges from the last admin user");
     });
 
-    it("returns 400 when user already deactivated", async () => {
+    it("returns 409 when user already deactivated", async () => {
       mockAdminClaims();
-      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ isActive: true } as never);
-      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: USER_ID_1, isActive: false } as never);
+      const tx = {
+        user: {
+          findUnique: vi.fn().mockResolvedValueOnce({ id: USER_ID_1, isActive: false }),
+        },
+      };
+      mockTransactionCallback(tx);
 
       const res = await request(app)
         .delete(`/api/v1/users/${USER_ID_1}`)
         .set("Authorization", `Bearer ${adminToken}`);
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(409);
     });
 
     it("returns 404 for non-existent user", async () => {
       mockAdminClaims();
-      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ isActive: true } as never);
-      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null);
+      const tx = {
+        user: {
+          findUnique: vi.fn().mockResolvedValueOnce(null),
+        },
+      };
+      mockTransactionCallback(tx);
+
       const res = await request(app)
         .delete("/api/v1/users/nonexistent")
         .set("Authorization", `Bearer ${adminToken}`);
