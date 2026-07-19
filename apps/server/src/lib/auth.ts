@@ -17,6 +17,10 @@ const DUMMY_PASSWORD_HASH = "$2b$12$QKooj7sysm30Ge8qpcopGeFnzts.kwkcyUJvYoAW3PFi
 
 export const authConfig = {
   refreshGracePeriodMs: 10_000,
+  changePasswordRateLimit: {
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === "production" ? 10 : 100,
+  },
 };
 
 export interface AccessTokenPayload {
