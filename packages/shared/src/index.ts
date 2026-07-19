@@ -1,2 +1,2 @@
-export { loginRequestSchema } from "./auth.js";
-export type { LoginRequest } from "./auth.js";
+export { loginRequestSchema, changePasswordRequestSchema, resetPasswordRequestSchema } from "./auth.js";
+export type { LoginRequest, ChangePasswordRequest, ResetPasswordRequest } from "./auth.js";
