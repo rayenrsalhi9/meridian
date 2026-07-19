@@ -101,6 +101,8 @@ describe("password endpoints", () => {
   beforeEach(() => {
     resetForTests();
     vi.clearAllMocks();
+    // Default mock so requireAuth (which now calls prisma.user.findUnique) passes
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ isActive: true } as never);
     mockRoleClaimFindMany([
       { roleId: ADMIN_ROLE_ID, key: "USER_MANAGE" },
     ]);

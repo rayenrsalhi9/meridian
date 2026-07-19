@@ -102,6 +102,14 @@ export async function rotateRefreshToken(
     return null;
   }
 
+  if (!existing.user.isActive) {
+    await prisma.refreshToken.updateMany({
+      where: { userId: existing.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return null;
+  }
+
   await prisma.refreshToken.update({
     where: { id: existing.id },
     data: { revokedAt: new Date() },
@@ -125,7 +133,7 @@ export async function loginUser(
     include: { userRoles: { select: { roleId: true } } },
   });
 
-  if (!user) {
+  if (!user || !user.isActive) {
     await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
     return null;
   }

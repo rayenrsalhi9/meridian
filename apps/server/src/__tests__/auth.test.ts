@@ -289,3 +289,70 @@ describe("requireAuth middleware", () => {
     expect(res.body.error).toBe("Invalid or expired token");
   });
 });
+
+describe("isActive enforcement", () => {
+  const tempEmail = "temp-deactivated@test.local";
+  const tempPassword = "TempPass123!";
+  let tempUserId: string;
+  let tempAccessToken: string;
+  let tempRefreshToken: string | undefined;
+
+  beforeAll(async () => {
+    const bcrypt = await import("bcryptjs");
+    const { BCRYPT_ROUNDS } = await import("../lib/auth.js");
+    const hash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
+
+    const user = await prisma.user.create({
+      data: { email: tempEmail, passwordHash: hash, firstName: "Temp", lastName: "User" },
+    });
+    tempUserId = user.id;
+
+    const loginRes = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: tempEmail, password: tempPassword });
+
+    tempAccessToken = loginRes.body.accessToken;
+    tempRefreshToken = extractCookie(loginRes.headers["set-cookie"], "refresh_token");
+
+    await prisma.user.update({ where: { id: tempUserId }, data: { isActive: false } });
+  });
+
+  afterAll(async () => {
+    await prisma.refreshToken.deleteMany({ where: { userId: tempUserId } });
+    await prisma.user.delete({ where: { id: tempUserId } }).catch(() => {});
+  });
+
+  it("rejects login for deactivated user with generic error", async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: tempEmail, password: tempPassword });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("Invalid credentials");
+    expect(res.body.accessToken).toBeUndefined();
+  });
+
+  it("rejects access token issued before deactivation", async () => {
+    const res = await request(app)
+      .get("/api/test/protected")
+      .set("Authorization", `Bearer ${tempAccessToken}`);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("Invalid or expired token");
+  });
+
+  it("rejects refresh token rotation for deactivated user and revokes the token", async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/refresh")
+      .set("Cookie", `refresh_token=${tempRefreshToken}`);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("Invalid or expired refresh token");
+
+    const { createHash } = await import("node:crypto");
+    const hash = createHash("sha256").update(tempRefreshToken!).digest("hex");
+    const revoked = await prisma.refreshToken.findFirst({ where: { tokenHash: hash } });
+    expect(revoked).toBeDefined();
+    expect(revoked!.revokedAt).not.toBeNull();
+  });
+});

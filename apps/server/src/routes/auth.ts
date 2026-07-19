@@ -15,7 +15,7 @@ const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === "production" ? 10 : 100,
   keyGenerator: (req) => {
-    const ip = ipKeyGenerator(req);
+    const ip = ipKeyGenerator(req.ip ?? "");
     return `${ip}:${(req.body as { email?: string })?.email ?? "unknown"}`;
   },
   handler: (_req, res) => {
