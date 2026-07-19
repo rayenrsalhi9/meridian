@@ -1,19 +1,9 @@
-import express, { type Request, type Response, type NextFunction } from "express"
+import "dotenv/config";
+import app from "./app.js";
+import { logger } from "./lib/logger.js";
 
-const app = express()
-const PORT = process.env.PORT ?? 4000
-
-app.use(express.json())
-
-app.get("/api/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok" })
-})
-
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(err.stack)
-  res.status(500).json({ error: "Internal server error" })
-})
+const PORT = process.env.PORT ?? 4000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-})
+  logger.info(`Server running on http://localhost:${PORT}`);
+});
