@@ -21,6 +21,8 @@ export function decodeJwtPayload(
   }
 }
 
+let refreshPromise: Promise<string | null> | null = null;
+
 export async function apiClient(
   path: string,
   options: RequestInit = {},
@@ -37,22 +39,39 @@ export async function apiClient(
   });
 
   if (res.status === 401) {
-    const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
+    if (!refreshPromise) {
+      refreshPromise = (async () => {
+        try {
+          const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+            method: "POST",
+            credentials: "include",
+          });
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            accessToken = data.accessToken;
+            return accessToken;
+          }
+          accessToken = null;
+          window.dispatchEvent(new CustomEvent("session-expired"));
+          return null;
+        } catch {
+          accessToken = null;
+          window.dispatchEvent(new CustomEvent("session-expired"));
+          return null;
+        } finally {
+          refreshPromise = null;
+        }
+      })();
+    }
 
-    if (refreshRes.ok) {
-      const data = await refreshRes.json();
-      accessToken = data.accessToken;
-      headers.set("Authorization", `Bearer ${accessToken}`);
+    const newToken = await refreshPromise;
+    if (newToken) {
+      headers.set("Authorization", `Bearer ${newToken}`);
       res = await fetch(`${API_BASE}${path}`, {
         ...options,
         headers,
         credentials: "include",
       });
-    } else {
-      accessToken = null;
     }
   }
 

@@ -57,7 +57,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     })();
-  }, []);
+
+    const onSessionExpired = () => {
+      setAccessToken(null);
+      setUser(null);
+      navigate("/login", { replace: true });
+    };
+
+    window.addEventListener("session-expired", onSessionExpired);
+    return () => window.removeEventListener("session-expired", onSessionExpired);
+  }, [navigate]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await fetch(`${API_BASE}/auth/login`, {
