@@ -14,7 +14,7 @@ createRoot(document.getElementById("root")!).render(
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedLayout />}>
-            <Route element={<App />}>
+            <Route path="/" element={<App />}>
               {/*
                * Authenticated routes go here.
                * Future: <Route element={<AdminProtectedLayout />}>
