@@ -155,6 +155,7 @@ Base path: `/api/v1`
 | ------------------- | ------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
 | Auth                | POST                | `/auth/login`                 | Public                                                                                            |
 | Auth                | POST                | `/auth/refresh`               | Refresh token                                                                                     |
+| Auth                | POST                | `/auth/logout`                | Authenticated; revokes the refresh token and clears its cookie                                    |
 | Users               | GET/POST/PUT/DELETE | `/users`                      | `USER_MANAGE`                                                                                     |
 | Roles               | GET/POST/PUT/DELETE | `/roles`                      | `ROLE_MANAGE`                                                                                     |
 | Claims              | GET                 | `/claims`                     | `ROLE_MANAGE`                                                                                     |

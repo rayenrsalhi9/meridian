@@ -90,7 +90,7 @@ _Definition of done for M0: `docker-compose up` + `npm run dev` gives a running 
 
 **Epic: Authentication**
 
-- `POST /auth/login` — validate credentials, issue access + refresh JWT (userId + roleIds only)
+- `POST /auth/login` — validate credentials, issue JWT access token (userId + roleIds only) + separate cookie-backed refresh token (hashed, rotated, and revoked through the database)
 - `POST /auth/refresh` — rotate refresh token
 - Password hashing (bcrypt/argon2) on user creation/reset
 - Auth middleware: verifies JWT, attaches `req.user`

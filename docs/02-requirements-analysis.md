@@ -112,7 +112,7 @@ _Deferred to a later increment: self-service "forgot password" flow (email code/
 
 - _As an Admin, I want to create a "Tech Support" role with document-category and chat-moderation claims, so I can delegate access without granting full admin rights._
 - _As an Employee, I want to upload a document to a shared category, so my team can access it based on their role._
-- _As a document owner, I want to share a specific sensitive document with one extra colleague outside their role's default access, so I don't have to change the whole category's permissions._
+- _As an Admin, I want to manage document access entirely through roles, so that individual sharing exceptions outside role permissions are never needed._
 - _As any authenticated user, I want to start a group chat with my project team, so we can discuss without cluttering email._
 - _As a Moderator, I want to delete an inappropriate forum comment, so the community space stays professional._
 - _As an Admin, I want a dashboard overview of document and forum activity, so I can spot usage patterns at a glance._
