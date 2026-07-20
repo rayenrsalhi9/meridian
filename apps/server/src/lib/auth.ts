@@ -13,7 +13,8 @@ const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 const BCRYPT_ROUNDS = 12;
 
-const DUMMY_PASSWORD_HASH = "$2b$12$QKooj7sysm30Ge8qpcopGeFnzts.kwkcyUJvYoAW3PFiAuziXMD02";
+const DUMMY_PASSWORD_HASH =
+  "$2b$12$QKooj7sysm30Ge8qpcopGeFnzts.kwkcyUJvYoAW3PFiAuziXMD02";
 
 export const authConfig = {
   refreshGracePeriodMs: 10_000,
@@ -71,9 +72,7 @@ export async function createRefreshToken(userId: string): Promise<{
   return { tokenValue, expiresAt };
 }
 
-export async function rotateRefreshToken(
-  oldTokenValue: string,
-): Promise<{
+export async function rotateRefreshToken(oldTokenValue: string): Promise<{
   tokenValue: string;
   expiresAt: Date;
   userId: string;
@@ -82,7 +81,11 @@ export async function rotateRefreshToken(
   const oldHash = hashToken(oldTokenValue);
 
   const existing = await prisma.refreshToken.findFirst({
-    where: { tokenHash: oldHash, revokedAt: null, expiresAt: { gt: new Date() } },
+    where: {
+      tokenHash: oldHash,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+    },
     include: { user: { include: { userRoles: { select: { roleId: true } } } } },
   });
 
@@ -122,6 +125,22 @@ export async function rotateRefreshToken(
     userId: existing.userId,
     roleIds: existing.user.userRoles.map((ur) => ur.roleId),
   };
+}
+
+export async function revokeRefreshToken(tokenValue: string): Promise<boolean> {
+  const tokenHash = hashToken(tokenValue);
+  const existing = await prisma.refreshToken.findFirst({
+    where: { tokenHash, revokedAt: null },
+  });
+
+  if (!existing) return false;
+
+  await prisma.refreshToken.update({
+    where: { id: existing.id },
+    data: { revokedAt: new Date() },
+  });
+
+  return true;
 }
 
 export async function loginUser(

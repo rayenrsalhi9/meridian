@@ -11,7 +11,9 @@ import {
   deleteRole,
 } from "../services/role.service.js";
 
-function isUniqueConstraintError(err: unknown): err is Prisma.PrismaClientKnownRequestError {
+function isUniqueConstraintError(
+  err: unknown,
+): err is Prisma.PrismaClientKnownRequestError {
   return (
     err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002"
   );

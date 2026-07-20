@@ -1,4 +1,5 @@
 # Project Charter — Meridian
+
 **Document 1 of the SDLC series — Planning Phase**
 **Increment:** 1 (MVP)
 **Methodology:** Incremental & Iterative Development
@@ -26,13 +27,13 @@ The rebuild is not a port — it is a re-architected system using a stack the au
 
 ### 4.1 In Scope — Increment 1 (MVP)
 
-| # | Feature | Rationale for inclusion |
-|---|---|---|
-| 1 | **Authentication & RBAC** | Foundational; demonstrates JWT auth, role/permission-based access control |
-| 2 | **Document Management System** | Flagship feature — file upload/preview/permissions/versioning/audit trail; highest complexity and visual impact |
-| 3 | **Real-time Chat** | 1-on-1 + group messaging via WebSockets (Socket.io); demonstrates real-time architecture |
-| 4 | **Forums** | Categories, posts, threaded comments, reactions; demonstrates relational data modeling and moderation/permission logic |
-| 5 | **Dashboard** | Aggregates stats/widgets across the other features; demonstrates data visualization and cohesive product thinking |
+| #   | Feature                        | Rationale for inclusion                                                                                                |
+| --- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Authentication & RBAC**      | Foundational; demonstrates JWT auth, role/permission-based access control                                              |
+| 2   | **Document Management System** | Flagship feature — file upload/preview/permissions/versioning/audit trail; highest complexity and visual impact        |
+| 3   | **Real-time Chat**             | 1-on-1 + group messaging via WebSockets (Socket.io); demonstrates real-time architecture                               |
+| 4   | **Forums**                     | Categories, posts, threaded comments, reactions; demonstrates relational data modeling and moderation/permission logic |
+| 5   | **Dashboard**                  | Aggregates stats/widgets across the other features; demonstrates data visualization and cohesive product thinking      |
 
 ### 4.2 Explicitly Out of Scope for Increment 1 (deferred to later increments)
 
@@ -51,21 +52,21 @@ The rebuild is not a port — it is a re-architected system using a stack the au
 
 ## 5. Technology Stack (confirmed)
 
-| Layer | Choice |
-|---|---|
-| Frontend | React + TypeScript |
-| Routing | React Router (SPA) |
-| Backend | Express + TypeScript |
-| Database | PostgreSQL |
-| ORM | Prisma |
-| Real-time | Socket.io (WebSockets) |
-| UI Components | shadcn/ui, scaffolded with Efferd / shadcnblocks blocks, customized |
-| Deployment | TBD |
-| Dev OS | Ubuntu |
-| Version Control | Git, hosted on GitHub |
-| IDE | VS Code |
-| AI coding tool | OpenCode |
-| Code review | CodeRabbit (automated PR review on GitHub) |
+| Layer           | Choice                                                              |
+| --------------- | ------------------------------------------------------------------- |
+| Frontend        | React + TypeScript                                                  |
+| Routing         | React Router (SPA)                                                  |
+| Backend         | Express + TypeScript                                                |
+| Database        | PostgreSQL                                                          |
+| ORM             | Prisma                                                              |
+| Real-time       | Socket.io (WebSockets)                                              |
+| UI Components   | shadcn/ui, scaffolded with Efferd / shadcnblocks blocks, customized |
+| Deployment      | TBD                                                                 |
+| Dev OS          | Ubuntu                                                              |
+| Version Control | Git, hosted on GitHub                                               |
+| IDE             | VS Code                                                             |
+| AI coding tool  | OpenCode                                                            |
+| Code review     | CodeRabbit (automated PR review on GitHub)                          |
 
 ## 6. Development Methodology
 
@@ -75,7 +76,7 @@ The rebuild is not a port — it is a re-architected system using a stack the au
 Plan → Requirements → Design → Implementation → Testing → Deployment → Review
 ```
 
-Increment 1 delivers a working, deployed system covering the 5 core features above. Subsequent increments (e.g., Increment 2: AI Forum Agent + Notifications) begin their own planning phase only after Increment 1 is functionally complete and deployed — ensuring each stage of the portfolio shows a *working system*, not a perpetually half-finished one.
+Increment 1 delivers a working, deployed system covering the 5 core features above. Subsequent increments (e.g., Increment 2: AI Forum Agent + Notifications) begin their own planning phase only after Increment 1 is functionally complete and deployed — ensuring each stage of the portfolio shows a _working system_, not a perpetually half-finished one.
 
 ## 7. Success Criteria / Definition of Done (Increment 1)
 
@@ -89,16 +90,17 @@ Increment 1 delivers a working, deployed system covering the 5 core features abo
 
 ## 8. Risks
 
-| Risk | Mitigation |
-|---|---|
-| Scope creep (re-adding cut features) | Strict adherence to this charter; new ideas logged for future increments, not pulled into Increment 1 |
-| Solo dev time constraints vs. "few weeks" target | Feature list already trimmed to 5; each has clear MVP-level acceptance criteria (see Requirements doc, next) |
-| Real-time chat complexity underestimated | Time-box a spike/prototype early in Design phase before committing to final architecture |
-| UI blocks (Efferd/shadcnblocks) looking generic/templated | Explicit re-theming pass planned during Design phase (colors, typography, spacing) |
+| Risk                                                      | Mitigation                                                                                                   |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Scope creep (re-adding cut features)                      | Strict adherence to this charter; new ideas logged for future increments, not pulled into Increment 1        |
+| Solo dev time constraints vs. "few weeks" target          | Feature list already trimmed to 5; each has clear MVP-level acceptance criteria (see Requirements doc, next) |
+| Real-time chat complexity underestimated                  | Time-box a spike/prototype early in Design phase before committing to final architecture                     |
+| UI blocks (Efferd/shadcnblocks) looking generic/templated | Explicit re-theming pass planned during Design phase (colors, typography, spacing)                           |
 
 ## 9. Next Step
 
 Proceed to **Phase 2: Requirements Analysis** — produce functional & non-functional requirements and user stories/personas for each of the 5 in-scope features.
 
 ---
-*End of Document 1 — Project Charter*
+
+_End of Document 1 — Project Charter_

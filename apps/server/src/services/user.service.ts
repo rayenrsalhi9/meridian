@@ -31,13 +31,17 @@ export async function ensureOtherAdminExists(
   if (userIdsPotentiallyLosingAdmin.length === 0) return null;
 
   const client = tx ?? prisma;
-  const rows = (await client.user.findMany({
-    where: { id: { notIn: userIdsPotentiallyLosingAdmin }, isActive: true },
-    select: {
-      id: true,
-      userRoles: { select: { roleId: true } },
-    },
-  })) as Array<{ id: string; userRoles: Array<{ roleId: string }> }> | null ?? [];
+  const rows =
+    ((await client.user.findMany({
+      where: { id: { notIn: userIdsPotentiallyLosingAdmin }, isActive: true },
+      select: {
+        id: true,
+        userRoles: { select: { roleId: true } },
+      },
+    })) as Array<{
+      id: string;
+      userRoles: Array<{ roleId: string }>;
+    }> | null) ?? [];
 
   for (const user of rows) {
     const roleIds = user.userRoles.map((ur) => ur.roleId);
@@ -126,7 +130,9 @@ export async function createUser(data: {
   password: string;
   roleIds: string[];
 }) {
-  const existing = await prisma.user.findUnique({ where: { email: data.email } });
+  const existing = await prisma.user.findUnique({
+    where: { email: data.email },
+  });
   if (existing) {
     return { error: "Email already in use" } as const;
   }
@@ -225,7 +231,8 @@ export async function deactivateUser(id: string) {
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUnique({ where: { id } });
     if (!user) return { error: "User not found" } as const;
-    if (!user.isActive) return { error: "User is already deactivated" } as const;
+    if (!user.isActive)
+      return { error: "User is already deactivated" } as const;
 
     const userRoles = await tx.userRole.findMany({
       where: { userId: id },
