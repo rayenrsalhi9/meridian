@@ -274,22 +274,6 @@ describe("POST /api/v1/auth/logout", () => {
       .post("/api/v1/auth/login")
       .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
 
-    function extractCookie(
-      setCookie: string | string[] | undefined,
-      name: string,
-    ): string | undefined {
-      const cookies = Array.isArray(setCookie)
-        ? setCookie
-        : setCookie
-          ? [setCookie]
-          : [];
-      for (const c of cookies) {
-        if (c.startsWith(`${name}=`)) {
-          return c.split(";")[0]?.slice(name.length + 1);
-        }
-      }
-    }
-
     const refreshToken = extractCookie(
       loginRes.headers["set-cookie"],
       "refresh_token",
