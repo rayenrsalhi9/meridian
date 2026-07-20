@@ -28,10 +28,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [touched, setTouched] = useState({ email: false, password: false });
-  const [fieldErrors, setFieldErrors] = useState<{
-    email?: string[];
-    password?: string[];
-  }>({});
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
 
@@ -41,7 +37,6 @@ export default function LoginPage() {
 
   const handleBlur = (field: "email" | "password") => {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    setFieldErrors((prev) => ({ ...prev, [field]: allErrors[field] }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,7 +47,6 @@ export default function LoginPage() {
     setTouched(allTouched);
 
     const errors = validateAll(email, password);
-    setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
     setIsPending(true);
@@ -68,8 +62,8 @@ export default function LoginPage() {
     }
   };
 
-  const emailError = touched.email ? fieldErrors.email : undefined;
-  const passwordError = touched.password ? fieldErrors.password : undefined;
+  const emailError = touched.email ? allErrors.email : undefined;
+  const passwordError = touched.password ? allErrors.password : undefined;
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center bg-zinc-50 px-4">
