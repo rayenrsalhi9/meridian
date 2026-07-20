@@ -102,7 +102,9 @@ export async function updateRole(
         include: { claim: { select: { key: true } } },
       });
       const oldAdminClaimKeys = oldClaims
-        .filter((rc: { claim: { key: string } }) => ADMIN_CLAIMS.has(rc.claim.key))
+        .filter((rc: { claim: { key: string } }) =>
+          ADMIN_CLAIMS.has(rc.claim.key),
+        )
         .map((rc: { claim: { key: string } }) => rc.claim.key);
 
       const newClaimRecords = await tx.claim.findMany({
@@ -159,7 +161,9 @@ export async function updateRole(
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
       },
     });
 
@@ -167,7 +171,10 @@ export async function updateRole(
       await tx.roleClaim.deleteMany({ where: { roleId: id } });
       if (data.claimIds.length > 0) {
         await tx.roleClaim.createMany({
-          data: data.claimIds.map((claimId: string) => ({ roleId: id, claimId })),
+          data: data.claimIds.map((claimId: string) => ({
+            roleId: id,
+            claimId,
+          })),
         });
       }
     }
@@ -189,10 +196,14 @@ export async function deleteRole(id: string) {
   if (!existing) return { error: "Role not found" } as const;
 
   const result = await prisma.$transaction(async (tx) => {
-    const usersWithRole = (await tx.user.findMany({
-      where: { isActive: true, userRoles: { some: { roleId: id } } },
-      select: { id: true, userRoles: { select: { roleId: true } } },
-    })) as Array<{ id: string; userRoles: Array<{ roleId: string }> }> | null ?? [];
+    const usersWithRole =
+      ((await tx.user.findMany({
+        where: { isActive: true, userRoles: { some: { roleId: id } } },
+        select: { id: true, userRoles: { select: { roleId: true } } },
+      })) as Array<{
+        id: string;
+        userRoles: Array<{ roleId: string }>;
+      }> | null) ?? [];
 
     const losingAdmin: string[] = [];
     for (const user of usersWithRole) {

@@ -4,14 +4,14 @@ Early-stage full-stack monorepo (npm workspaces) — React/Vite client + Express
 
 ## Commands (run from root)
 
-| Action | Command |
-|---|---|
-| Dev servers | `npm run dev` (parallel: Vite + tsx watch) |
-| Lint | `npm run lint` (oxlint) |
-| Format | `npm run format` (prettier --write) |
-| Typecheck | `npm run typecheck` (runs per-workspace `typecheck` if present) |
-| Client build | `npm run build -w apps/client` |
-| Server build | `npm run build -w apps/server` (runs `prisma generate && tsc`) |
+| Action       | Command                                                         |
+| ------------ | --------------------------------------------------------------- |
+| Dev servers  | `npm run dev` (parallel: Vite + tsx watch)                      |
+| Lint         | `npm run lint` (oxlint)                                         |
+| Format       | `npm run format` (prettier --write)                             |
+| Typecheck    | `npm run typecheck` (runs per-workspace `typecheck` if present) |
+| Client build | `npm run build -w apps/client`                                  |
+| Server build | `npm run build -w apps/server` (runs `prisma generate && tsc`)  |
 
 No tests configured yet. No CI yet.
 

@@ -20,7 +20,10 @@ export async function changeUserPassword(
 
   const valid = await bcrypt.compare(currentPassword, user.passwordHash);
   if (!valid) {
-    logger.warn({ userId }, "Failed password change: incorrect current password");
+    logger.warn(
+      { userId },
+      "Failed password change: incorrect current password",
+    );
     return { success: false, error: "Current password is incorrect" };
   }
 

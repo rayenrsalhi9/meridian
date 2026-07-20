@@ -28,7 +28,8 @@ const changePasswordLimiter = rateLimit({
   max: authConfig.changePasswordRateLimit.max,
   keyGenerator: (req) => {
     const ip = ipKeyGenerator(req.ip ?? "");
-    const userId = (req as { user?: { userId: string } }).user?.userId ?? "unknown";
+    const userId =
+      (req as { user?: { userId: string } }).user?.userId ?? "unknown";
     return `${ip}:${userId}`;
   },
   handler: (_req, res) => {
@@ -44,15 +45,20 @@ router.get("/", requireAuth, requireClaim("USER_MANAGE"), async (req, res) => {
   res.json(users);
 });
 
-router.get("/:id", requireAuth, requireClaim("USER_MANAGE"), async (req, res) => {
-  const id = req.params.id as string;
-  const user = await getUser(id);
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-  res.json(user);
-});
+router.get(
+  "/:id",
+  requireAuth,
+  requireClaim("USER_MANAGE"),
+  async (req, res) => {
+    const id = req.params.id as string;
+    const user = await getUser(id);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    res.json(user);
+  },
+);
 
 router.post(
   "/",
@@ -78,34 +84,40 @@ router.post(
   },
 );
 
-router.put("/:id", requireAuth, requireClaim("USER_MANAGE"), async (req, res, next) => {
-  if (req.body?.roleIds !== undefined) {
-    return requireClaim("ROLE_MANAGE")(req, res, next);
-  }
-  next();
-}, async (req, res) => {
-  const parsed = updateUserSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
-    return;
-  }
+router.put(
+  "/:id",
+  requireAuth,
+  requireClaim("USER_MANAGE"),
+  async (req, res, next) => {
+    if (req.body?.roleIds !== undefined) {
+      return requireClaim("ROLE_MANAGE")(req, res, next);
+    }
+    next();
+  },
+  async (req, res) => {
+    const parsed = updateUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      });
+      return;
+    }
 
-  const result = await updateUser(req.params.id as string, parsed.data);
-  if ("error" in result) {
-    const status =
-      result.error === "User not found"
-        ? 404
-        : result.error === "Email already in use"
-          ? 409
-          : 400;
-    res.status(status).json({ error: result.error });
-    return;
-  }
-  res.json(result);
-});
+    const result = await updateUser(req.params.id as string, parsed.data);
+    if ("error" in result) {
+      const status =
+        result.error === "User not found"
+          ? 404
+          : result.error === "Email already in use"
+            ? 409
+            : 400;
+      res.status(status).json({ error: result.error });
+      return;
+    }
+    res.json(result);
+  },
+);
 
 router.delete(
   "/:id",
@@ -181,7 +193,10 @@ router.post(
     }
 
     const { newPassword } = parsed.data;
-    const result = await resetUserPassword(req.params.id as string, newPassword);
+    const result = await resetUserPassword(
+      req.params.id as string,
+      newPassword,
+    );
 
     if (!result.success) {
       res.status(404).json({ error: result.error });

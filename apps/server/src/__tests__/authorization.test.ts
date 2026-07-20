@@ -20,7 +20,10 @@ import {
   invalidateRole,
   resetForTests,
 } from "../services/authorization.service.js";
-import { changeUserPassword, resetUserPassword } from "../services/password.service.js";
+import {
+  changeUserPassword,
+  resetUserPassword,
+} from "../services/password.service.js";
 import app from "../app.js";
 import { signAccessToken } from "../lib/auth.js";
 
@@ -28,7 +31,9 @@ const ADMIN_ROLE_ID = "pwd-test-admin-role";
 const adminToken = signAccessToken("admin-user-id", [ADMIN_ROLE_ID]);
 const userToken = signAccessToken("regular-user-id", ["user-role"]);
 
-function mockRoleClaimFindMany(entries: Array<{ roleId: string; key: string }>) {
+function mockRoleClaimFindMany(
+  entries: Array<{ roleId: string; key: string }>,
+) {
   vi.mocked(prisma.roleClaim.findMany).mockResolvedValue(
     entries.map((e) => ({
       id: `rc-${e.roleId}-${e.key}`,
@@ -61,9 +66,7 @@ describe("authorization.service", () => {
   });
 
   it("cache hit does not re-query the DB", async () => {
-    mockRoleClaimFindMany([
-      { roleId: "role-a", key: "TEST_CLAIM" },
-    ]);
+    mockRoleClaimFindMany([{ roleId: "role-a", key: "TEST_CLAIM" }]);
 
     await resolveClaims(["role-a"]);
     expect(prisma.roleClaim.findMany).toHaveBeenCalledTimes(1);
@@ -73,9 +76,7 @@ describe("authorization.service", () => {
   });
 
   it("cache miss queries DB and populates cache", async () => {
-    mockRoleClaimFindMany([
-      { roleId: "role-a", key: "MISS_CLAIM" },
-    ]);
+    mockRoleClaimFindMany([{ roleId: "role-a", key: "MISS_CLAIM" }]);
 
     const claims = await resolveClaims(["role-a"]);
     expect(claims.has("MISS_CLAIM")).toBe(true);
@@ -83,9 +84,7 @@ describe("authorization.service", () => {
   });
 
   it("invalidateRole clears entry, subsequent resolve re-queries DB", async () => {
-    mockRoleClaimFindMany([
-      { roleId: "role-a", key: "INVAL_CLAIM" },
-    ]);
+    mockRoleClaimFindMany([{ roleId: "role-a", key: "INVAL_CLAIM" }]);
 
     await resolveClaims(["role-a"]);
     expect(prisma.roleClaim.findMany).toHaveBeenCalledTimes(1);
@@ -102,10 +101,10 @@ describe("password endpoints", () => {
     resetForTests();
     vi.clearAllMocks();
     // Default mock so requireAuth (which now calls prisma.user.findUnique) passes
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ isActive: true } as never);
-    mockRoleClaimFindMany([
-      { roleId: ADMIN_ROLE_ID, key: "USER_MANAGE" },
-    ]);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      isActive: true,
+    } as never);
+    mockRoleClaimFindMany([{ roleId: ADMIN_ROLE_ID, key: "USER_MANAGE" }]);
   });
 
   describe("POST /:id/change-password", () => {

@@ -7,6 +7,7 @@ import {
   signAccessToken,
   createRefreshToken,
   rotateRefreshToken,
+  revokeRefreshToken,
 } from "../lib/auth.js";
 
 const router = Router();
@@ -89,6 +90,17 @@ router.post("/refresh", async (req, res) => {
   res.cookie(REFRESH_COOKIE, rotated.tokenValue, COOKIE_OPTIONS);
 
   res.json({ accessToken });
+});
+
+router.post("/logout", async (req, res) => {
+  const tokenValue = req.cookies?.[REFRESH_COOKIE];
+
+  if (tokenValue) {
+    await revokeRefreshToken(tokenValue);
+  }
+
+  res.clearCookie(REFRESH_COOKIE, COOKIE_OPTIONS);
+  res.status(200).json({ message: "Logged out" });
 });
 
 export default router;

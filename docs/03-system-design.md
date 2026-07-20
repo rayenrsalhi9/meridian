@@ -1,4 +1,5 @@
 # System Design — Meridian
+
 **Document 3 of the SDLC series — Design Phase**
 **Increment:** 1 (MVP)
 
@@ -38,6 +39,7 @@ flowchart TB
 ```
 
 **Key architectural decisions:**
+
 - **Layered backend**: Controller → Service → Prisma (repository-ish) layers, so business logic isn't stuck inside route handlers (testable, and reads well in a code review).
 - **Shared types package**: `packages/shared/types.ts` exported from a workspace package, imported by both client and server — one source of truth for e.g. `PermissionClaim`, `DocumentDTO`.
 - **Storage abstraction**: `StorageService` interface with a `LocalDiskStorageService` implementation for MVP; a `S3StorageService` can be added later without touching controllers/services.
@@ -143,30 +145,31 @@ erDiagram
     }
 ```
 
-*(Simplified — junction/audit tables like `DOCUMENT_AUDIT_LOG`, `MESSAGE_REACTION`, `MESSAGE_SEEN`, `FORUM_REACTION` (single "Like" type) shown as relationships only; full column lists will live in the Prisma schema itself during implementation.)*
+_(Simplified — junction/audit tables like `DOCUMENT_AUDIT_LOG`, `MESSAGE_REACTION`, `MESSAGE_SEEN`, `FORUM_REACTION` (single "Like" type) shown as relationships only; full column lists will live in the Prisma schema itself during implementation.)_
 
 ## 4. API Design (REST)
 
 Base path: `/api/v1`
 
-| Resource | Method | Path | Auth/Claim |
-|---|---|---|---|
-| Auth | POST | `/auth/login` | Public |
-| Auth | POST | `/auth/refresh` | Refresh token |
-| Users | GET/POST/PUT/DELETE | `/users` | `USER_MANAGE` |
-| Roles | GET/POST/PUT/DELETE | `/roles` | `ROLE_MANAGE` |
-| Claims | GET | `/claims` | `ROLE_MANAGE` |
-| Documents | GET | `/documents?categoryId=` | authenticated; results filtered to documents whose role-access list intersects the caller's roles |
-| Documents | POST | `/documents` (multipart) | `DOCUMENT_CREATE` |
-| Documents | GET/PUT/DELETE | `/documents/:id` | claim + document role-access check |
-| Documents | PUT | `/documents/:id/roles` | owner or `DOCUMENT_MANAGE` (sets the document's accessible role list) |
-| Document Categories | GET/POST/PUT/DELETE | `/document-categories` | `DOCUMENT_CATEGORY_MANAGE` |
-| Conversations | GET/POST | `/conversations` | authenticated |
-| Messages | GET/POST | `/conversations/:id/messages` | participant |
-| Forums | GET/POST/PUT/DELETE | `/forums` | authenticated + claims |
-| Forum Categories | GET/POST/PUT/DELETE | `/forum-categories` | `FORUM_CATEGORY_MANAGE` |
-| Forum Comments | GET/POST/DELETE | `/forums/:id/comments` | authenticated |
-| Dashboard | GET | `/dashboard/summary` | authenticated (claim-filtered response) |
+| Resource            | Method              | Path                          | Auth/Claim                                                                                        |
+| ------------------- | ------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| Auth                | POST                | `/auth/login`                 | Public                                                                                            |
+| Auth                | POST                | `/auth/refresh`               | Refresh token                                                                                     |
+| Auth                | POST                | `/auth/logout`                | Authenticated; revokes the refresh token and clears its cookie                                    |
+| Users               | GET/POST/PUT/DELETE | `/users`                      | `USER_MANAGE`                                                                                     |
+| Roles               | GET/POST/PUT/DELETE | `/roles`                      | `ROLE_MANAGE`                                                                                     |
+| Claims              | GET                 | `/claims`                     | `ROLE_MANAGE`                                                                                     |
+| Documents           | GET                 | `/documents?categoryId=`      | authenticated; results filtered to documents whose role-access list intersects the caller's roles |
+| Documents           | POST                | `/documents` (multipart)      | `DOCUMENT_CREATE`                                                                                 |
+| Documents           | GET/PUT/DELETE      | `/documents/:id`              | claim + document role-access check                                                                |
+| Documents           | PUT                 | `/documents/:id/roles`        | owner or `DOCUMENT_MANAGE` (sets the document's accessible role list)                             |
+| Document Categories | GET/POST/PUT/DELETE | `/document-categories`        | `DOCUMENT_CATEGORY_MANAGE`                                                                        |
+| Conversations       | GET/POST            | `/conversations`              | authenticated                                                                                     |
+| Messages            | GET/POST            | `/conversations/:id/messages` | participant                                                                                       |
+| Forums              | GET/POST/PUT/DELETE | `/forums`                     | authenticated + claims                                                                            |
+| Forum Categories    | GET/POST/PUT/DELETE | `/forum-categories`           | `FORUM_CATEGORY_MANAGE`                                                                           |
+| Forum Comments      | GET/POST/DELETE     | `/forums/:id/comments`        | authenticated                                                                                     |
+| Dashboard           | GET                 | `/dashboard/summary`          | authenticated (claim-filtered response)                                                           |
 
 **WebSocket events (Socket.io namespace `/chat`):**
 `message:send`, `message:new` (broadcast), `typing:start/stop`, `presence:update`, `message:seen`
@@ -195,12 +198,12 @@ Rather than hand-drawn wireframes, Increment 1 will scaffold screens directly fr
 
 ## 8. Development Environment & Workflow
 
-| Aspect | Choice |
-|---|---|
-| OS | Ubuntu (local dev) |
-| IDE | VS Code |
-| Version control | Git, hosted on GitHub |
-| AI coding assistant | OpenCode |
+| Aspect                | Choice                                                         |
+| --------------------- | -------------------------------------------------------------- |
+| OS                    | Ubuntu (local dev)                                             |
+| IDE                   | VS Code                                                        |
+| Version control       | Git, hosted on GitHub                                          |
+| AI coding assistant   | OpenCode                                                       |
 | Automated code review | CodeRabbit — reviews every Pull Request on GitHub before merge |
 
 **Workflow:** feature branches → PR opened on GitHub → CodeRabbit automated review + Oxlint/Prettier/TypeScript checks run in CI → self-review/merge to `main`. Even solo, this PR-based flow is kept deliberately (rather than pushing straight to `main`) so the repo history itself demonstrates a real review discipline — every feature/task from the Phase 4 backlog becomes its own branch + PR, closing the corresponding GitHub Issue.
@@ -210,4 +213,5 @@ Rather than hand-drawn wireframes, Increment 1 will scaffold screens directly fr
 Proceed to **Phase 3: Project Management Setup** — backlog creation (epics → user stories → tasks), milestone breakdown for the incremental delivery plan, and repo/tooling bootstrap — before implementation begins.
 
 ---
-*End of Document 3 — System Design*
+
+_End of Document 3 — System Design_

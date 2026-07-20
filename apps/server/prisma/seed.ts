@@ -12,9 +12,7 @@ function resolveAdminPassword(): string {
   if (process.env.NODE_ENV === "development") {
     return "admin123";
   }
-  throw new Error(
-    "ADMIN_INITIAL_PASSWORD must be set in this environment",
-  );
+  throw new Error("ADMIN_INITIAL_PASSWORD must be set in this environment");
 }
 
 const CLAIMS = [

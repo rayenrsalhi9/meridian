@@ -24,7 +24,11 @@ function extractCookie(
   setCookie: string | string[] | undefined,
   name: string,
 ): string | undefined {
-  const cookies = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+  const cookies = Array.isArray(setCookie)
+    ? setCookie
+    : setCookie
+      ? [setCookie]
+      : [];
   for (const c of cookies) {
     if (c.startsWith(`${name}=`)) {
       return c.split(";")[0]?.slice(name.length + 1);
@@ -155,13 +159,19 @@ describe("POST /api/v1/auth/refresh", () => {
     const loginA = await request(app)
       .post("/api/v1/auth/login")
       .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
-    const cookieA = extractCookie(loginA.headers["set-cookie"], "refresh_token");
+    const cookieA = extractCookie(
+      loginA.headers["set-cookie"],
+      "refresh_token",
+    );
     expect(cookieA).toBeDefined();
 
     const loginB = await request(app)
       .post("/api/v1/auth/login")
       .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
-    const cookieB = extractCookie(loginB.headers["set-cookie"], "refresh_token");
+    const cookieB = extractCookie(
+      loginB.headers["set-cookie"],
+      "refresh_token",
+    );
     expect(cookieB).toBeDefined();
 
     // Rotate cookieA — normal flow
@@ -194,13 +204,19 @@ describe("POST /api/v1/auth/refresh", () => {
       const loginA = await request(app)
         .post("/api/v1/auth/login")
         .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
-      const cookieA = extractCookie(loginA.headers["set-cookie"], "refresh_token");
+      const cookieA = extractCookie(
+        loginA.headers["set-cookie"],
+        "refresh_token",
+      );
       expect(cookieA).toBeDefined();
 
       const loginB = await request(app)
         .post("/api/v1/auth/login")
         .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
-      const cookieB = extractCookie(loginB.headers["set-cookie"], "refresh_token");
+      const cookieB = extractCookie(
+        loginB.headers["set-cookie"],
+        "refresh_token",
+      );
       expect(cookieB).toBeDefined();
 
       expect(cookieA).not.toBe(cookieB);
@@ -228,6 +244,59 @@ describe("POST /api/v1/auth/refresh", () => {
     } finally {
       authConfig.refreshGracePeriodMs = origGrace;
     }
+  });
+});
+
+describe("POST /api/v1/auth/logout", () => {
+  it("returns 200 and clears the cookie", async () => {
+    const loginRes = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
+
+    expect(loginRes.status).toBe(200);
+
+    const res = await request(app)
+      .post("/api/v1/auth/logout")
+      .set("Cookie", loginRes.headers["set-cookie"] as unknown as string);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Logged out");
+
+    const setCookie = res.headers["set-cookie"] ?? "";
+    const cookieStr = Array.isArray(setCookie)
+      ? setCookie.join(";")
+      : setCookie;
+    expect(cookieStr).toContain("refresh_token=;");
+  });
+
+  it("revokes the refresh token so subsequent refresh requests fail", async () => {
+    const loginRes = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
+
+    const refreshToken = extractCookie(
+      loginRes.headers["set-cookie"],
+      "refresh_token",
+    );
+    expect(refreshToken).toBeDefined();
+
+    const logoutRes = await request(app)
+      .post("/api/v1/auth/logout")
+      .set("Cookie", `refresh_token=${refreshToken}`);
+    expect(logoutRes.status).toBe(200);
+
+    const refreshRes = await request(app)
+      .post("/api/v1/auth/refresh")
+      .set("Cookie", `refresh_token=${refreshToken}`);
+    expect(refreshRes.status).toBe(401);
+    expect(refreshRes.body.error).toBe("Invalid or expired refresh token");
+  });
+
+  it("returns 200 even when no refresh token cookie is present", async () => {
+    const res = await request(app).post("/api/v1/auth/logout");
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Logged out");
   });
 });
 
@@ -275,11 +344,9 @@ describe("requireAuth middleware", () => {
 
   it("returns 401 for token signed with a different secret", async () => {
     const jwt = await import("jsonwebtoken");
-    const fakeToken = jwt.sign(
-      { sub: "fake", roles: [] },
-      "different-secret",
-      { expiresIn: "15m" },
-    );
+    const fakeToken = jwt.sign({ sub: "fake", roles: [] }, "different-secret", {
+      expiresIn: "15m",
+    });
 
     const res = await request(app)
       .get("/api/test/protected")
@@ -303,7 +370,12 @@ describe("isActive enforcement", () => {
     const hash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
 
     const user = await prisma.user.create({
-      data: { email: tempEmail, passwordHash: hash, firstName: "Temp", lastName: "User" },
+      data: {
+        email: tempEmail,
+        passwordHash: hash,
+        firstName: "Temp",
+        lastName: "User",
+      },
     });
     tempUserId = user.id;
 
@@ -312,9 +384,15 @@ describe("isActive enforcement", () => {
       .send({ email: tempEmail, password: tempPassword });
 
     tempAccessToken = loginRes.body.accessToken;
-    tempRefreshToken = extractCookie(loginRes.headers["set-cookie"], "refresh_token");
+    tempRefreshToken = extractCookie(
+      loginRes.headers["set-cookie"],
+      "refresh_token",
+    );
 
-    await prisma.user.update({ where: { id: tempUserId }, data: { isActive: false } });
+    await prisma.user.update({
+      where: { id: tempUserId },
+      data: { isActive: false },
+    });
   });
 
   afterAll(async () => {
@@ -351,7 +429,9 @@ describe("isActive enforcement", () => {
 
     const { createHash } = await import("node:crypto");
     const hash = createHash("sha256").update(tempRefreshToken!).digest("hex");
-    const revoked = await prisma.refreshToken.findFirst({ where: { tokenHash: hash } });
+    const revoked = await prisma.refreshToken.findFirst({
+      where: { tokenHash: hash },
+    });
     expect(revoked).toBeDefined();
     expect(revoked!.revokedAt).not.toBeNull();
   });
