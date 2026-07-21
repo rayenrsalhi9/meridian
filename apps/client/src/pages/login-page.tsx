@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
+import { motion, useAnimate, AnimatePresence } from "motion/react";
 import { loginRequestSchema } from "shared";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
@@ -30,10 +31,10 @@ export default function LoginPage() {
   const [touched, setTouched] = useState({ email: false, password: false });
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const [scope, animate] = useAnimate();
 
   const allErrors = useMemo(() => validateAll(email, password), [email, password]);
-  const isSubmitDisabled =
-    isPending || !email || !password || Object.keys(allErrors).length > 0;
+  const isSubmitDisabled = isPending;
 
   const handleBlur = (field: "email" | "password") => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -47,7 +48,10 @@ export default function LoginPage() {
     setTouched(allTouched);
 
     const errors = validateAll(email, password);
-    if (Object.keys(errors).length > 0) return;
+    if (Object.keys(errors).length > 0) {
+      void animate(scope.current, { x: [0, -6, 6, -4, 4, 0] }, { duration: 0.3 });
+      return;
+    }
 
     setIsPending(true);
     try {
@@ -57,6 +61,7 @@ export default function LoginPage() {
       setError(
         err instanceof Error ? err.message : "Invalid email or password",
       );
+      void animate(scope.current, { x: [0, -6, 6, -4, 4, 0] }, { duration: 0.3 });
     } finally {
       setIsPending(false);
     }
@@ -78,13 +83,28 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+          <form
+            ref={scope}
+            onSubmit={handleSubmit}
+            noValidate
+            className="flex flex-col gap-4"
+          >
             <div aria-live="polite" aria-atomic="true" className="text-center">
-              {error && (
-                <p className="text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              )}
+              <AnimatePresence mode="wait">
+                {error && (
+                  <motion.p
+                    key={error}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="text-sm text-destructive"
+                    role="alert"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="email">Email</Label>
@@ -103,11 +123,22 @@ export default function LoginPage() {
                 aria-invalid={!!emailError}
                 aria-describedby={emailError ? "email-error" : undefined}
               />
-              {emailError && (
-                <p id="email-error" className="text-xs text-destructive" role="alert">
-                  {emailError[0]}
-                </p>
-              )}
+              <AnimatePresence mode="wait">
+                {emailError && (
+                  <motion.p
+                    id="email-error"
+                    key={emailError[0]}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="text-xs text-destructive"
+                    role="alert"
+                  >
+                    {emailError[0]}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="password">Password</Label>
@@ -126,11 +157,22 @@ export default function LoginPage() {
                 aria-invalid={!!passwordError}
                 aria-describedby={passwordError ? "password-error" : undefined}
               />
-              {passwordError && (
-                <p id="password-error" className="text-xs text-destructive" role="alert">
-                  {passwordError[0]}
-                </p>
-              )}
+              <AnimatePresence mode="wait">
+                {passwordError && (
+                  <motion.p
+                    id="password-error"
+                    key={passwordError[0]}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="text-xs text-destructive"
+                    role="alert"
+                  >
+                    {passwordError[0]}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
             <Button type="submit" disabled={isSubmitDisabled}>
               {isPending ? "Signing in..." : "Sign in"}
