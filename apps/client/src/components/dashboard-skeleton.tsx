@@ -10,17 +10,15 @@ export function DashboardSkeleton() {
 			<span className="sr-only">Loading dashboard…</span>
 			<div
 				className={cn(
-					"grid grid-cols-2 gap-4 lg:grid-cols-4",
+					"grid grid-cols-1 gap-px lg:grid-cols-3",
 					"*:min-h-48 *:w-full *:bg-muted *:dark:bg-muted/50"
 				)}
 			>
 				<div className="rounded-md" />
 				<div className="rounded-md" />
 				<div className="rounded-md" />
-				<div className="rounded-md" />
-				<div className="rounded-md col-span-2 min-h-114! lg:col-span-4" />
-				<div className="rounded-md col-span-2 min-h-92! lg:col-span-2" />
-				<div className="rounded-md col-span-2 min-h-92! lg:col-span-2" />
+				<div className="rounded-md lg:col-span-3" />
+				<div className="rounded-md lg:col-span-3" />
 			</div>
 		</div>
 	);

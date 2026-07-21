@@ -10,7 +10,7 @@ export function Dashboard() {
 					Welcome back, Shaban!
 				</h1>
 				<p className="text-base text-muted-foreground">
-					let's get things done.
+					Let's get things done.
 				</p>
 			</div>
 			<div className="rounded-md overflow-hidden border">

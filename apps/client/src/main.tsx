@@ -5,11 +5,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ProtectedLayout } from "@/components/protected-layout";
 import { AdminProtectedLayout } from "@/components/admin-protected-layout";
-import App from "./App.tsx";
-import LoginPage from "./pages/login-page.tsx";
+import App from "@/App.tsx";
+import LoginPage from "@/pages/login-page.tsx";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
-import { NotFoundPage } from "./pages/not-found-page.tsx";
-import { PlaceholderPage } from "./pages/placeholder-page.tsx";
+import { NotFoundPage } from "@/pages/not-found-page.tsx";
+import { PlaceholderPage } from "@/pages/placeholder-page.tsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(

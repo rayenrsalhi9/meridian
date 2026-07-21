@@ -12,12 +12,10 @@ export function NotFoundPage() {
       <p className="text-muted-foreground" aria-hidden="true">
         Page not found
       </p>
-      <Link to="/">
-        <Button variant="outline">
-          <HomeIcon className="size-4" />
-          Go home
-        </Button>
-      </Link>
+      <Button variant="outline" render={<Link to="/" />}>
+        <HomeIcon className="size-4" />
+        Go home
+      </Button>
     </div>
   );
 }

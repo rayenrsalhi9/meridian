@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, useAnimate, AnimatePresence } from "motion/react";
 import { loginRequestSchema } from "shared";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
@@ -31,12 +31,10 @@ export default function LoginPage() {
   const [touched, setTouched] = useState({ email: false, password: false });
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
-  const [shakeKey, setShakeKey] = useState(0);
-  const formRef = useRef<HTMLFormElement>(null);
+  const [scope, animate] = useAnimate();
 
   const allErrors = useMemo(() => validateAll(email, password), [email, password]);
-  const isSubmitDisabled =
-    isPending || !email || !password || Object.keys(allErrors).length > 0;
+  const isSubmitDisabled = isPending;
 
   const handleBlur = (field: "email" | "password") => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -51,7 +49,7 @@ export default function LoginPage() {
 
     const errors = validateAll(email, password);
     if (Object.keys(errors).length > 0) {
-      setShakeKey((k) => k + 1);
+      void animate(scope.current, { x: [0, -6, 6, -4, 4, 0] }, { duration: 0.3 });
       return;
     }
 
@@ -63,7 +61,7 @@ export default function LoginPage() {
       setError(
         err instanceof Error ? err.message : "Invalid email or password",
       );
-      setShakeKey((k) => k + 1);
+      void animate(scope.current, { x: [0, -6, 6, -4, 4, 0] }, { duration: 0.3 });
     } finally {
       setIsPending(false);
     }
@@ -85,18 +83,11 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <motion.form
-            ref={formRef}
+          <form
+            ref={scope}
             onSubmit={handleSubmit}
             noValidate
             className="flex flex-col gap-4"
-            key={shakeKey}
-            animate={
-              shakeKey > 0
-                ? { x: [0, -6, 6, -4, 4, 0] }
-                : { x: 0 }
-            }
-            transition={{ duration: 0.3 }}
           >
             <div aria-live="polite" aria-atomic="true" className="text-center">
               <AnimatePresence mode="wait">
@@ -186,7 +177,7 @@ export default function LoginPage() {
             <Button type="submit" disabled={isSubmitDisabled}>
               {isPending ? "Signing in..." : "Sign in"}
             </Button>
-          </motion.form>
+          </form>
         </CardContent>
       </Card>
     </div>

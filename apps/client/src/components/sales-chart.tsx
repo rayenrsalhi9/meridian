@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
-import { formatDate } from "@/components/formater";
+import { formatChartAxisTick } from "@/components/formater";
 import {
 	Card,
 	CardContent,
@@ -124,11 +124,11 @@ export function SalesChart() {
 	const [periodDays, setPeriodDays] = useState<PeriodDays>(7);
 	const [xAxis, setXAxis] = useState<number | null>(null);
 
-	const chartRows = useMemo(() => {
-		const startDate = new Date(salesChartReferenceDate);
-		startDate.setDate(startDate.getDate() - periodDays);
-		return chartData.filter((item) => parseChartDay(item.date) >= startDate);
-	}, [periodDays]);
+  const chartRows = useMemo(() => {
+    const startDate = new Date(salesChartReferenceDate);
+    startDate.setDate(startDate.getDate() - (periodDays - 1));
+    return chartData.filter((item) => parseChartDay(item.date) >= startDate);
+  }, [periodDays]);
 
 	const growthPctNum = useMemo(() => {
 		const first = chartRows[0];
@@ -217,7 +217,7 @@ export function SalesChart() {
 							dataKey="date"
 							interval={periodDays <= 7 ? 0 : "preserveStartEnd"}
 							minTickGap={xAxisMinTickGap}
-							tickFormatter={(value) => formatDate(String(value), "day-month")}
+              tickFormatter={(value) => formatChartAxisTick(String(value), periodDays)}
 							tickLine={false}
 							tickMargin={8}
 						/>
