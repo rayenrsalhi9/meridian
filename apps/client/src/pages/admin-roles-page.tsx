@@ -1,5 +1,3 @@
-"use client"
-
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import { EditIcon, PlusIcon, ShieldIcon, Trash2Icon } from "lucide-react"
@@ -193,6 +191,15 @@ export function AdminRolesPage() {
   }
 
   function toggleClaim(claimId: string) {
+    const hadClaim = selectedClaimIds.has(claimId)
+    if (hadClaim) {
+      const next = new Set(selectedClaimIds)
+      next.delete(claimId)
+      if (wouldEditLeaveZeroAdmins(next)) {
+        setSaveError("Cannot remove the last administrative claim")
+        return
+      }
+    }
     setSelectedClaimIds((prev) => {
       const next = new Set(prev)
       if (next.has(claimId)) {
@@ -207,6 +214,16 @@ export function AdminRolesPage() {
   function toggleCategory(category: ClaimCategory, checked: boolean) {
     const group = claimGroups.get(category)
     if (!group) return
+    if (!checked) {
+      const next = new Set(selectedClaimIds)
+      for (const claim of group) {
+        next.delete(claim.id)
+      }
+      if (wouldEditLeaveZeroAdmins(next)) {
+        setSaveError("Cannot remove the last administrative claim")
+        return
+      }
+    }
     setSelectedClaimIds((prev) => {
       const next = new Set(prev)
       for (const claim of group) {
@@ -242,6 +259,10 @@ export function AdminRolesPage() {
     }
     if (selectedClaimIds.size === 0) {
       setSaveError("At least one claim must be selected")
+      return
+    }
+    if (wouldEditLeaveZeroAdmins(selectedClaimIds)) {
+      setSaveError("Cannot remove the last administrative claim")
       return
     }
     setSaving(true)
@@ -287,6 +308,27 @@ export function AdminRolesPage() {
     if (role.userCount === 0) return false
     const otherAdminRoles = roles.filter(
       (r) => r.id !== role.id && isAdminRole(r) && r.userCount > 0,
+    )
+    return otherAdminRoles.length === 0
+  }
+
+  function wouldEditLeaveZeroAdmins(proposedIds: Set<string>): boolean {
+    if (!editingRoleId) return false
+    const role = roles.find((r) => r.id === editingRoleId)
+    if (!role) return false
+    if (role.userCount === 0) return false
+    if (!isAdminRole(role)) return false
+
+    const adminClaimIds = new Set(
+      [...ADMIN_CLAIM_KEYS]
+        .map((key) => claimKeyToId[key])
+        .filter(Boolean),
+    )
+    const hasAdminClaim = [...proposedIds].some((id) => adminClaimIds.has(id))
+    if (hasAdminClaim) return false
+
+    const otherAdminRoles = roles.filter(
+      (r) => r.id !== editingRoleId && isAdminRole(r) && r.userCount > 0,
     )
     return otherAdminRoles.length === 0
   }
@@ -532,6 +574,8 @@ export function AdminRolesPage() {
                             toggleCategory(category, _checked)
                           }
                           id={`category-${category}`}
+                          render={<button />}
+                          nativeButton
                         />
                         <Label
                           htmlFor={`category-${category}`}
