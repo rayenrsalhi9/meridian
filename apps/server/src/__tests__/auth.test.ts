@@ -197,9 +197,10 @@ describe("POST /api/v1/auth/refresh", () => {
   });
 
   it("detects theft: reusing a revoked token after grace period revokes all other sessions", async () => {
-    const { authConfig } = await import("../lib/auth.js");
-    const origGrace = authConfig.refreshGracePeriodMs;
-    authConfig.refreshGracePeriodMs = 0;
+    const { refreshGracePeriodMs } = await import("../lib/auth.js");
+    const mod = await import("../lib/auth.js");
+    const origGrace = refreshGracePeriodMs;
+    mod.refreshGracePeriodMs = 0;
     try {
       const loginA = await request(app)
         .post("/api/v1/auth/login")
@@ -242,7 +243,7 @@ describe("POST /api/v1/auth/refresh", () => {
       expect(tokenB).toBeDefined();
       expect(tokenB!.revokedAt).not.toBeNull();
     } finally {
-      authConfig.refreshGracePeriodMs = origGrace;
+      mod.refreshGracePeriodMs = origGrace;
     }
   });
 });

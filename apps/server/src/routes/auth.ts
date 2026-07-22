@@ -9,7 +9,7 @@ import {
   rotateRefreshToken,
   revokeRefreshToken,
 } from "../lib/auth.js";
-import { parseCookies } from "../lib/http.js";
+import { parseCookies, parseBody } from "../lib/http.js";
 import { rateLimiter } from "../lib/rate-limiter.js";
 
 const router = Router();
@@ -36,16 +36,10 @@ const loginLimiter = rateLimiter({
 router.post("/login", async (req, res) => {
   if (!loginLimiter(req, res)) return;
 
-  const parsed = loginRequestSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
-    return;
-  }
+  const data = parseBody(loginRequestSchema, req, res);
+  if (!data) return;
 
-  const { email, password } = parsed.data;
+  const { email, password } = data;
   const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
 
   const result = await loginUser(email, password);
@@ -114,16 +108,10 @@ router.get("/me", requireAuth, async (req, res) => {
 });
 
 router.put("/me", requireAuth, async (req, res) => {
-  const parsed = updateProfileSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
-    return;
-  }
+  const data = parseBody(updateProfileSchema, req, res);
+  if (!data) return;
 
-  const { firstName, lastName } = parsed.data;
+  const { firstName, lastName } = data;
 
   const user = await prisma.user.update({
     where: { id: req.user!.userId },

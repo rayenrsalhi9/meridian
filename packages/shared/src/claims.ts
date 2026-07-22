@@ -39,6 +39,4 @@ export function getClaimLabel(key: string): string {
   return CLAIM_DEFINITIONS[key]?.label ?? key;
 }
 
-export function getClaimCategory(key: string): ClaimCategory | undefined {
-  return CLAIM_DEFINITIONS[key]?.category;
-}
+

@@ -3,6 +3,7 @@ import { createRoleSchema, updateRoleSchema } from "shared";
 import { requireAuth } from "../middleware/auth.js";
 import { requireClaim } from "../middleware/requireClaim.js";
 import { Prisma } from "../generated/prisma/client.js";
+import { parseBody } from "../lib/http.js";
 import {
   listRoles,
   getRole,
@@ -38,17 +39,11 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const parsed = createRoleSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
-    return;
-  }
+  const data = parseBody(createRoleSchema, req, res);
+  if (!data) return;
 
   try {
-    const role = await createRole(parsed.data);
+    const role = await createRole(data);
     res.status(201).json(role);
   } catch (err: unknown) {
     if (isUniqueConstraintError(err)) {
@@ -60,17 +55,11 @@ router.post("/", async (req, res) => {
 });
 
 router.put("/:id", async (req, res) => {
-  const parsed = updateRoleSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
-    return;
-  }
+  const data = parseBody(updateRoleSchema, req, res);
+  if (!data) return;
 
   try {
-    const result = await updateRole(req.params.id, parsed.data);
+    const result = await updateRole(req.params.id, data);
     if (!result) {
       res.status(404).json({ error: "Role not found" });
       return;

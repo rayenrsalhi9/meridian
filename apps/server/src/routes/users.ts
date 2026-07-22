@@ -7,8 +7,8 @@ import {
 } from "shared";
 import { requireAuth } from "../middleware/auth.js";
 import { requireClaim } from "../middleware/requireClaim.js";
-import { authConfig } from "../lib/auth.js";
 import { rateLimiter } from "../lib/rate-limiter.js";
+import { parseBody } from "../lib/http.js";
 import {
   changeUserPassword,
   resetUserPassword,
@@ -24,8 +24,8 @@ import {
 const router = Router();
 
 const changePasswordLimiter = rateLimiter({
-  windowMs: authConfig.changePasswordRateLimit.windowMs,
-  max: authConfig.changePasswordRateLimit.max,
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "production" ? 10 : 100,
   keyGenerator: (req) => {
     const ip = req.ip ?? "unknown";
     const userId =
@@ -61,16 +61,10 @@ router.post(
   requireClaim("USER_MANAGE"),
   requireClaim("ROLE_MANAGE"),
   async (req, res) => {
-    const parsed = createUserSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      });
-      return;
-    }
+    const data = parseBody(createUserSchema, req, res);
+    if (!data) return;
 
-    const result = await createUser(parsed.data);
+    const result = await createUser(data);
     if ("error" in result) {
       res.status(409).json({ error: result.error });
       return;
@@ -90,16 +84,10 @@ router.put(
     next();
   },
   async (req, res) => {
-    const parsed = updateUserSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      });
-      return;
-    }
+    const data = parseBody(updateUserSchema, req, res);
+    if (!data) return;
 
-    const result = await updateUser(req.params.id as string, parsed.data);
+    const result = await updateUser(req.params.id as string, data);
     if ("error" in result) {
       const status =
         result.error === "User not found"
@@ -148,16 +136,10 @@ router.post(
       return;
     }
 
-    const parsed = changePasswordRequestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      });
-      return;
-    }
+    const pwData = parseBody(changePasswordRequestSchema, req, res);
+    if (!pwData) return;
 
-    const { currentPassword, newPassword } = parsed.data;
+    const { currentPassword, newPassword } = pwData;
     const result = await changeUserPassword(
       req.params.id,
       currentPassword,
@@ -180,16 +162,10 @@ router.post(
   requireAuth,
   requireClaim("USER_MANAGE"),
   async (req, res) => {
-    const parsed = resetPasswordRequestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      });
-      return;
-    }
+    const data = parseBody(resetPasswordRequestSchema, req, res);
+    if (!data) return;
 
-    const { newPassword } = parsed.data;
+    const { newPassword } = data;
     const result = await resetUserPassword(
       req.params.id as string,
       newPassword,

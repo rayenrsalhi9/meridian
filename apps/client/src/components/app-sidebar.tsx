@@ -13,12 +13,12 @@ import { NavGroup } from "@/components/nav-group";
 import {
   navGroups,
   footerNavLinks,
-  computeActiveFlags,
+  computeNavState,
 } from "@/components/app-shared";
 
 export function AppSidebar() {
   const { pathname } = useLocation();
-  const activeGroups = computeActiveFlags(pathname, navGroups);
+  const { groups: activeGroups } = computeNavState(pathname, navGroups, footerNavLinks);
 
   return (
     <Sidebar
