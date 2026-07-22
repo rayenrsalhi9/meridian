@@ -166,6 +166,7 @@ export async function updateUser(
     email?: string;
     firstName?: string;
     lastName?: string;
+    isActive?: boolean;
     roleIds?: string[];
   },
 ) {
@@ -192,12 +193,38 @@ export async function updateUser(
       }
     }
 
+    if (data.isActive === false) {
+      const userRoleIds = (
+        await tx.userRole.findMany({
+          where: { userId: id },
+          select: { roleId: true },
+        })
+      ).map((ur) => ur.roleId);
+
+      let targetIsAdmin = false;
+      if (userRoleIds.length > 0) {
+        const targetClaims = await resolveClaims(userRoleIds);
+        for (const claim of ADMIN_CLAIMS) {
+          if (targetClaims.has(claim)) {
+            targetIsAdmin = true;
+            break;
+          }
+        }
+      }
+
+      if (targetIsAdmin) {
+        const error = await ensureOtherAdminExists([id], tx);
+        if (error) return { error } as const;
+      }
+    }
+
     await tx.user.update({
       where: { id },
       data: {
         ...(data.email !== undefined && { email: data.email }),
         ...(data.firstName !== undefined && { firstName: data.firstName }),
         ...(data.lastName !== undefined && { lastName: data.lastName }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
       },
     });
 
@@ -208,6 +235,14 @@ export async function updateUser(
           data: data.roleIds.map((roleId) => ({ userId: id, roleId })),
         });
       }
+    }
+
+    if (data.isActive === false) {
+      const now = new Date();
+      await tx.refreshToken.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: now },
+      });
     }
 
     return { ok: true as const };
