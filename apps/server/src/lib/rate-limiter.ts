@@ -7,6 +7,8 @@ export function rateLimiter(opts: {
   windowMs: number;
   max: number;
   keyGenerator?: (req: import("express").Request) => string;
+  status?: number;
+  message?: string;
 }) {
   const store = new Map<string, Bucket>();
 
@@ -27,7 +29,7 @@ export function rateLimiter(opts: {
     }
     bucket.count++;
     if (bucket.count > opts.max) {
-      res.status(401).json({ error: "Invalid credentials" });
+      res.status(opts.status ?? 429).json({ error: opts.message ?? "Too many requests" });
       return false;
     }
     return true;

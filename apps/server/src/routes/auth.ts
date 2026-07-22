@@ -26,11 +26,8 @@ const COOKIE_OPTIONS = {
 const loginLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === "production" ? 10 : 100,
-  keyGenerator: (req) => {
-    const ip = req.ip ?? "unknown";
-    const email = (req.body as { email?: string })?.email ?? "unknown";
-    return `${ip}:${email}`;
-  },
+  status: 401,
+  message: "Invalid credentials",
 });
 
 router.post("/login", async (req, res) => {

@@ -127,6 +127,7 @@ export async function updateRole(
           },
         });
 
+        // ponytail: per-user resolveClaimsInTx, union all otherRoleIds + single call if scale demands
         const losingAdmin: string[] = [];
         for (const user of usersWithRole) {
           const otherRoleIds = user.userRoles
