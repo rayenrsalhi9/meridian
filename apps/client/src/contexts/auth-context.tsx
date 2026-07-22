@@ -16,17 +16,36 @@ export interface AuthUser {
   roleIds: string[];
 }
 
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
+  profile: UserProfile | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function fetchProfile(): Promise<UserProfile | null> {
+  try {
+    const res = await apiClient("/auth/me");
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -49,6 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (decoded) {
             setAccessToken(data.accessToken);
             setUser({ id: decoded.sub, roleIds: decoded.roles });
+            const p = await fetchProfile();
+            if (p) setProfile(p);
           }
         }
       } catch {
@@ -61,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const onSessionExpired = () => {
       setAccessToken(null);
       setUser(null);
+      setProfile(null);
       navigate("/login", { replace: true });
     };
 
@@ -86,6 +108,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await res.json();
     setAccessToken(data.accessToken);
     setUser(data.user);
+    const p = await fetchProfile();
+    if (p) setProfile(p);
+  }, []);
+
+  const refetchProfile = useCallback(async () => {
+    const p = await fetchProfile();
+    if (p) setProfile(p);
   }, []);
 
   const logout = useCallback(async () => {
@@ -96,11 +125,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setAccessToken(null);
     setUser(null);
+    setProfile(null);
     navigate("/login", { replace: true });
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, profile, isLoading, login, logout, refetchProfile }}>
       {children}
     </AuthContext.Provider>
   );

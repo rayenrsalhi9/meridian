@@ -10,14 +10,23 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavGroup } from "@/components/nav-group";
-import { navGroups, footerNavLinks, computeActiveFlags } from "@/components/app-shared";
+import {
+  navGroups,
+  footerNavLinks,
+  computeNavState,
+} from "@/components/app-shared";
 
 export function AppSidebar() {
   const { pathname } = useLocation();
-  const activeGroups = computeActiveFlags(pathname, navGroups);
+  const { groups: activeGroups } = computeNavState(pathname, navGroups, footerNavLinks);
 
   return (
-    <Sidebar collapsible="icon" variant="inset" role="complementary" aria-label="Sidebar">
+    <Sidebar
+      collapsible="icon"
+      variant="inset"
+      role="complementary"
+      aria-label="Sidebar"
+    >
       <SidebarHeader className="h-14 justify-center">
         <SidebarMenuButton render={<Link to="/" />}>
           <LogoIcon />

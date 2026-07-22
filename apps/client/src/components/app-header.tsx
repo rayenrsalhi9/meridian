@@ -5,14 +5,18 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger";
-import { navGroups, footerNavLinks, getActivePage } from "@/components/app-shared";
+import {
+  navGroups,
+  footerNavLinks,
+  computeNavState,
+} from "@/components/app-shared";
 import { NavUser } from "@/components/nav-user";
 import { BellIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AppHeader() {
   const { pathname } = useLocation();
-  const activeItem = getActivePage(pathname, navGroups, footerNavLinks);
+  const activeItem = computeNavState(pathname, navGroups, footerNavLinks).activePage;
 
   return (
     <header

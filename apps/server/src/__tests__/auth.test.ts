@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import request from "supertest";
 import app from "../app.js";
 import { prisma } from "../db.js";
@@ -197,9 +197,10 @@ describe("POST /api/v1/auth/refresh", () => {
   });
 
   it("detects theft: reusing a revoked token after grace period revokes all other sessions", async () => {
-    const { authConfig } = await import("../lib/auth.js");
-    const origGrace = authConfig.refreshGracePeriodMs;
-    authConfig.refreshGracePeriodMs = 0;
+    const { refreshGracePeriodMs } = await import("../lib/auth.js");
+    const mod = await import("../lib/auth.js");
+    const origGrace = refreshGracePeriodMs;
+    mod.refreshGracePeriodMs = 0;
     try {
       const loginA = await request(app)
         .post("/api/v1/auth/login")
@@ -242,7 +243,7 @@ describe("POST /api/v1/auth/refresh", () => {
       expect(tokenB).toBeDefined();
       expect(tokenB!.revokedAt).not.toBeNull();
     } finally {
-      authConfig.refreshGracePeriodMs = origGrace;
+      mod.refreshGracePeriodMs = origGrace;
     }
   });
 });
@@ -354,6 +355,106 @@ describe("requireAuth middleware", () => {
 
     expect(res.status).toBe(401);
     expect(res.body.error).toBe("Invalid or expired token");
+  });
+});
+
+describe("GET /api/v1/auth/me", () => {
+  let accessToken: string;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
+    accessToken = res.body.accessToken;
+  });
+
+  it("returns the authenticated user's profile", async () => {
+    const res = await request(app)
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBeDefined();
+    expect(res.body.firstName).toBe("Admin");
+    expect(res.body.lastName).toBe("User");
+    expect(res.body.email).toBe(TEST_EMAIL);
+    expect(res.body).not.toHaveProperty("passwordHash");
+    expect(res.body).not.toHaveProperty("isActive");
+  });
+
+  it("returns 401 without auth token", async () => {
+    const res = await request(app).get("/api/v1/auth/me");
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("PUT /api/v1/auth/me", () => {
+  let accessToken: string;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
+    accessToken = res.body.accessToken;
+  });
+
+  afterEach(async () => {
+    const res = await request(app)
+      .put("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ firstName: "Admin", lastName: "User" });
+    expect(res.status).toBe(200);
+  });
+
+  it("updates firstName and lastName successfully", async () => {
+    const res = await request(app)
+      .put("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ firstName: "Updated", lastName: "Name" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.firstName).toBe("Updated");
+    expect(res.body.lastName).toBe("Name");
+    expect(res.body.email).toBe(TEST_EMAIL);
+  });
+
+  it("does not change email when email field is included in request body", async () => {
+    const res = await request(app)
+      .put("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        firstName: "Test",
+        lastName: "User",
+        email: "hacked@evil.com",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.email).toBe(TEST_EMAIL);
+
+    const verifyRes = await request(app)
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(verifyRes.body.email).toBe(TEST_EMAIL);
+  });
+
+  it("returns 400 for missing firstName", async () => {
+    const res = await request(app)
+      .put("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ lastName: "Name" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Validation failed");
+  });
+
+  it("rejects whitespace-only names", async () => {
+    const res = await request(app)
+      .put("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ firstName: "   ", lastName: "   " });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Validation failed");
   });
 });
 

@@ -60,10 +60,7 @@ function matchesPath(pathname: string, itemPath: string): boolean {
   return pathname === itemPath || pathname.startsWith(itemPath + "/");
 }
 
-export function computeActiveFlags(
-  pathname: string,
-  groups: SidebarNavGroup[],
-): SidebarNavGroup[] {
+function activeGroups(pathname: string, groups: SidebarNavGroup[]): SidebarNavGroup[] {
   return groups.map((group) => ({
     ...group,
     items: group.items.map((item) => ({
@@ -77,7 +74,7 @@ export function computeActiveFlags(
   }));
 }
 
-export function getActivePage(
+function findActivePage(
   pathname: string,
   groups: SidebarNavGroup[],
   footer: SidebarNavItem[],
@@ -86,10 +83,12 @@ export function getActivePage(
     for (const item of group.items) {
       const sub = item.subItems?.find((s) => s.path === pathname);
       if (sub) return sub;
-      if (item.path && matchesPath(pathname, item.path)) {
-        return item;
-      }
+      if (item.path && matchesPath(pathname, item.path)) return item;
     }
   }
   return footer.find((item) => item.path === pathname) ?? null;
+}
+
+export function computeNavState(pathname: string, groups: SidebarNavGroup[], footer: SidebarNavItem[]) {
+  return { groups: activeGroups(pathname, groups), activePage: findActivePage(pathname, groups, footer) };
 }

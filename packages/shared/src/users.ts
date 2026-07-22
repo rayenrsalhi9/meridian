@@ -14,6 +14,7 @@ export const updateUserSchema = z.object({
   email: z.string().email("Invalid email address").optional(),
   firstName: z.string().min(1).max(100).optional(),
   lastName: z.string().min(1).max(100).optional(),
+  isActive: z.boolean().optional(),
   roleIds: z.array(z.string().uuid()).min(1).optional(),
 });
 

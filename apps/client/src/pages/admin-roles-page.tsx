@@ -4,6 +4,7 @@ import { EditIcon, PlusIcon, ShieldIcon, Trash2Icon } from "lucide-react"
 import {
   CLAIM_DEFINITIONS,
   getClaimLabel,
+  ADMIN_CLAIM_KEYS as ADMIN_CLAIM_KEYS_ARRAY,
   type ClaimCategory,
 } from "shared"
 import { apiClient } from "@/lib/api-client"
@@ -47,7 +48,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-const ADMIN_CLAIM_KEYS = new Set(["ROLE_MANAGE", "USER_MANAGE"])
+const ADMIN_CLAIM_KEYS = new Set<string>(ADMIN_CLAIM_KEYS_ARRAY)
 
 interface ClaimItem {
   id: string

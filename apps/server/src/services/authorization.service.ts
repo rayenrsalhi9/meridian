@@ -1,35 +1,30 @@
 import { prisma } from "../db.js";
+import { Prisma } from "../generated/prisma/client.js";
 
-export interface ClaimCacheStore {
-  get(roleId: string): Set<string> | undefined;
-  set(roleId: string, claims: Set<string>): void;
-  delete(roleId: string): boolean;
-}
-
-class InMemoryClaimCache implements ClaimCacheStore {
-  private store = new Map<string, Set<string>>();
-
-  get(roleId: string): Set<string> | undefined {
-    return this.store.get(roleId);
-  }
-
-  set(roleId: string, claims: Set<string>): void {
-    this.store.set(roleId, claims);
-  }
-
-  delete(roleId: string): boolean {
-    return this.store.delete(roleId);
-  }
-}
-
-export let claimCache: ClaimCacheStore = new InMemoryClaimCache();
+export const claimCache = new Map<string, Set<string>>();
 
 export function resetForTests(): void {
-  claimCache = new InMemoryClaimCache();
+  claimCache.clear();
+}
+
+export async function resolveClaimsInTx(
+  tx: Prisma.TransactionClient,
+  roleIds: string[],
+): Promise<Set<string>> {
+  if (roleIds.length === 0) return new Set();
+  const roleClaims = await tx.roleClaim.findMany({
+    where: { roleId: { in: roleIds } },
+    include: { claim: { select: { key: true } } },
+  });
+  const all = new Set<string>();
+  for (const rc of roleClaims) {
+    all.add(rc.claim.key);
+  }
+  return all;
 }
 
 export async function resolveClaims(roleIds: string[]): Promise<Set<string>> {
-  const uncached = roleIds.filter((id) => !claimCache.get(id));
+  const uncached = roleIds.filter((id) => !claimCache.has(id));
 
   if (uncached.length > 0) {
     const roleClaims = await prisma.roleClaim.findMany({

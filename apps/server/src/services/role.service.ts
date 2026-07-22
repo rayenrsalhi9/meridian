@@ -1,6 +1,5 @@
 import { prisma } from "../db.js";
-import { logger } from "../lib/logger.js";
-import { invalidateRole, resolveClaims } from "./authorization.service.js";
+import { invalidateRole, resolveClaimsInTx } from "./authorization.service.js";
 import { ADMIN_CLAIMS, ensureOtherAdminExists } from "./user.service.js";
 
 export async function listRoles() {
@@ -73,7 +72,7 @@ export async function createRole(data: {
   });
 
   invalidateRole(role.id);
-  logger.info({ roleId: role.id, name: role.name }, "Role created");
+  console.log("Role created", { roleId: role.id, name: role.name });
 
   return {
     id: role.id,
@@ -115,11 +114,11 @@ export async function updateRole(
         .filter((c: { key: string }) => ADMIN_CLAIMS.has(c.key))
         .map((c: { key: string }) => c.key);
 
-      const lostAdminClaims = oldAdminClaimKeys.filter(
-        (k: string) => !newAdminClaimKeys.includes(k),
-      );
+      const hadAdmin = oldAdminClaimKeys.length > 0;
+      const hasAdmin = newAdminClaimKeys.length > 0;
+      const lostAllAdminClaims = hadAdmin && !hasAdmin;
 
-      if (lostAdminClaims.length > 0) {
+      if (lostAllAdminClaims) {
         const usersWithRole = await tx.user.findMany({
           where: { isActive: true, userRoles: { some: { roleId: id } } },
           select: {
@@ -128,6 +127,7 @@ export async function updateRole(
           },
         });
 
+        // ponytail: per-user resolveClaimsInTx, union all otherRoleIds + single call if scale demands
         const losingAdmin: string[] = [];
         for (const user of usersWithRole) {
           const otherRoleIds = user.userRoles
@@ -136,7 +136,7 @@ export async function updateRole(
 
           let otherHasAdmin = false;
           if (otherRoleIds.length > 0) {
-            const otherClaims = await resolveClaims(otherRoleIds);
+            const otherClaims = await resolveClaimsInTx(tx, otherRoleIds);
             for (const claim of ADMIN_CLAIMS) {
               if (otherClaims.has(claim)) {
                 otherHasAdmin = true;
@@ -151,8 +151,8 @@ export async function updateRole(
         }
 
         if (losingAdmin.length > 0) {
-          const error = await ensureOtherAdminExists(losingAdmin, tx);
-          if (error) return { error };
+          const checkResult = await ensureOtherAdminExists(losingAdmin, tx);
+          if (checkResult) return { error: checkResult.error, code: checkResult.code };
         }
       }
     }
@@ -186,7 +186,7 @@ export async function updateRole(
   if ("error" in result) return result;
 
   invalidateRole(id);
-  logger.info({ roleId: id }, "Role updated");
+  console.log("Role updated", { roleId: id });
 
   return getRole(id);
 }
@@ -213,7 +213,7 @@ export async function deleteRole(id: string) {
 
       let otherHasAdmin = false;
       if (otherRoleIds.length > 0) {
-        const otherClaims = await resolveClaims(otherRoleIds);
+        const otherClaims = await resolveClaimsInTx(tx, otherRoleIds);
         for (const claim of ADMIN_CLAIMS) {
           if (otherClaims.has(claim)) {
             otherHasAdmin = true;
@@ -228,8 +228,8 @@ export async function deleteRole(id: string) {
     }
 
     if (losingAdmin.length > 0) {
-      const error = await ensureOtherAdminExists(losingAdmin, tx);
-      if (error) return { error };
+      const checkResult = await ensureOtherAdminExists(losingAdmin, tx);
+      if (checkResult) return { error: checkResult.error, code: checkResult.code };
     }
 
     await tx.userRole.deleteMany({ where: { roleId: id } });
@@ -239,10 +239,10 @@ export async function deleteRole(id: string) {
     return { success: true as const };
   });
 
-  if ("error" in result) return { error: result.error } as const;
+  if ("error" in result) return result;
 
   invalidateRole(id);
-  logger.info({ roleId: id, name: existing.name }, "Role deleted");
+  console.log("Role deleted", { roleId: id, name: existing.name });
 
   return { success: true as const };
 }

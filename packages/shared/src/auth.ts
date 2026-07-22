@@ -19,3 +19,10 @@ export const resetPasswordRequestSchema = z.object({
 });
 
 export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
+
+export const updateProfileSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required").max(100),
+  lastName: z.string().trim().min(1, "Last name is required").max(100),
+});
+
+export type UpdateProfileRequest = z.infer<typeof updateProfileSchema>;

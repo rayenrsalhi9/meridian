@@ -1,3 +1,5 @@
+export const ADMIN_CLAIM_KEYS = ["ROLE_MANAGE", "USER_MANAGE"] as const;
+
 export const CLAIM_CATEGORIES = [
   "Documents",
   "Forums",
@@ -37,6 +39,4 @@ export function getClaimLabel(key: string): string {
   return CLAIM_DEFINITIONS[key]?.label ?? key;
 }
 
-export function getClaimCategory(key: string): ClaimCategory | undefined {
-  return CLAIM_DEFINITIONS[key]?.category;
-}
+
