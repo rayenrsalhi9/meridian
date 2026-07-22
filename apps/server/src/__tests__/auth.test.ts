@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import request from "supertest";
 import app from "../app.js";
 import { prisma } from "../db.js";
@@ -397,6 +397,13 @@ describe("PUT /api/v1/auth/me", () => {
     accessToken = res.body.accessToken;
   });
 
+  afterEach(async () => {
+    await request(app)
+      .put("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ firstName: "Admin", lastName: "User" });
+  });
+
   it("updates firstName and lastName successfully", async () => {
     const res = await request(app)
       .put("/api/v1/auth/me")
@@ -438,15 +445,14 @@ describe("PUT /api/v1/auth/me", () => {
     expect(res.body.error).toBe("Validation failed");
   });
 
-  it("restores original values after tests", async () => {
+  it("rejects whitespace-only names", async () => {
     const res = await request(app)
       .put("/api/v1/auth/me")
       .set("Authorization", `Bearer ${accessToken}`)
-      .send({ firstName: "Admin", lastName: "User" });
+      .send({ firstName: "   ", lastName: "   " });
 
-    expect(res.status).toBe(200);
-    expect(res.body.firstName).toBe("Admin");
-    expect(res.body.lastName).toBe("User");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Validation failed");
   });
 });
 

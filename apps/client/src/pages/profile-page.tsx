@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { Navigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { updateProfileSchema, changePasswordRequestSchema } from "shared";
 import { useAuth } from "@/contexts/auth-context";
 import { apiClient } from "@/lib/api-client";
-import { getAvatarColor, getInitials } from "@/lib/user-utils";
+import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,7 +26,6 @@ const PASSWORD_RULES = [
 
 export function ProfilePage() {
   const { user, profile, refetchProfile } = useAuth();
-  const navigate = useNavigate();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -88,15 +87,29 @@ export function ProfilePage() {
   }, [newPassword]);
 
   const profileFormValid = useMemo(() => {
-    return firstName.trim().length > 0 && lastName.trim().length > 0;
-  }, [firstName, lastName]);
+    const nameFilled = firstName.trim().length > 0 && lastName.trim().length > 0;
+    const noErrors = Object.keys(profileErrors).length === 0;
+    return nameFilled && noErrors;
+  }, [firstName, lastName, profileErrors]);
 
   const passwordFormValid = useMemo(() => {
     if (!currentPassword || !newPassword || !confirmPassword) return false;
-    if (newPassword.length < 8) return false;
+    if (!passwordRulesPassed.every(Boolean)) return false;
     if (newPassword !== confirmPassword) return false;
+    if (
+      !passwordValidation ||
+      Object.keys(passwordValidation.passwordErrors).length > 0
+    ) {
+      return false;
+    }
     return true;
-  }, [currentPassword, newPassword, confirmPassword]);
+  }, [
+    currentPassword,
+    newPassword,
+    confirmPassword,
+    passwordRulesPassed,
+    passwordValidation,
+  ]);
 
   const handleProfileBlur = (field: "firstName" | "lastName") => {
     setProfileTouched((prev) => ({ ...prev, [field]: true }));
@@ -177,8 +190,7 @@ export function ProfilePage() {
   }, [currentPassword, newPassword, passwordFormValid, user]);
 
   if (!user) {
-    navigate("/login", { replace: true });
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   const firstNameError = profileTouched.firstName ? profileErrors.firstName : undefined;
@@ -213,12 +225,7 @@ export function ProfilePage() {
               <div className="flex flex-col items-center gap-3">
                 {profile && (
                   <>
-                    <span
-                      className={`flex size-16 items-center justify-center rounded-full text-lg font-medium text-white ${getAvatarColor(user.id)}`}
-                      aria-hidden="true"
-                    >
-                      {getInitials(profile.firstName, profile.lastName)}
-                    </span>
+                    <UserAvatar profile={profile} userId={user.id} size="lg" />
                     <p className="text-sm font-medium text-center">
                       {profile.firstName} {profile.lastName}
                     </p>

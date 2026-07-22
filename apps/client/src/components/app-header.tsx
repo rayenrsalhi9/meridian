@@ -5,7 +5,11 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { CustomSidebarTrigger } from "@/components/custom-sidebar-trigger";
-import { navGroups, footerNavLinks, getActivePage } from "@/components/app-shared";
+import {
+  navGroups,
+  footerNavLinks,
+  getActivePage,
+} from "@/components/app-shared";
 import { NavUser } from "@/components/nav-user";
 import { BellIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";

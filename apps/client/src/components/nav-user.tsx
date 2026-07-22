@@ -2,10 +2,8 @@
 
 import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserIcon, LogOutIcon, UserRoundIcon } from "lucide-react";
-import { getInitials, getAvatarColor } from "@/lib/user-utils";
+import { LogOutIcon, UserRoundIcon } from "lucide-react";
 
 export function NavUser() {
   const { user, profile, logout } = useAuth();
@@ -25,30 +22,14 @@ export function NavUser() {
     <DropdownMenu>
       <DropdownMenuTrigger render={<Avatar className="size-8" />} nativeButton={false}>
         <AvatarFallback>
-          {profile ? (
-            <span
-              className={`flex size-8 items-center justify-center rounded-full text-xs font-medium text-white ${user ? getAvatarColor(user.id) : ""}`}
-            >
-              {getInitials(profile.firstName, profile.lastName)}
-            </span>
-          ) : (
-            <UserIcon className="size-4" />
-          )}
+          <UserAvatar profile={profile} userId={user?.id} size="sm" />
         </AvatarFallback>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
         <div className="flex items-center gap-3 px-3 py-2">
           <Avatar className="size-10">
             <AvatarFallback>
-              {profile ? (
-                <span
-                  className={`flex size-10 items-center justify-center rounded-full text-sm font-medium text-white ${user ? getAvatarColor(user.id) : ""}`}
-                >
-                  {getInitials(profile.firstName, profile.lastName)}
-                </span>
-              ) : (
-                <UserIcon className="size-4" />
-              )}
+              <UserAvatar profile={profile} userId={user?.id} size="md" />
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col min-w-0">
