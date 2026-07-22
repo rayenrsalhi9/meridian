@@ -12,5 +12,19 @@ services:
     volumes:
       - meridian_pgdata:/var/lib/postgresql/data
 
+  postgres_test:
+    image: postgres:17-alpine
+    container_name: meridian_postgres_test
+    restart: "no"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-meridian}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: meridian_test
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - meridian_pgdata_test:/var/lib/postgresql/data
+
 volumes:
   meridian_pgdata:
+  meridian_pgdata_test:
