@@ -11,6 +11,7 @@ import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { NotFoundPage } from "@/pages/not-found-page.tsx";
 import { PlaceholderPage } from "@/pages/placeholder-page.tsx";
 import { AdminRolesPage } from "@/pages/admin-roles-page.tsx";
+import { AdminUsersPage } from "@/pages/admin-users-page.tsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -38,7 +39,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route element={<AdminProtectedLayout />}>
                   <Route
                     path="admin/users"
-                    element={<PlaceholderPage title="Users" />}
+                    element={<AdminUsersPage />}
                   />
                   <Route
                     path="admin/roles"
