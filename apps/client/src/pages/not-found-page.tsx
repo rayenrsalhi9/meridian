@@ -12,7 +12,7 @@ export function NotFoundPage() {
       <p className="text-muted-foreground" aria-hidden="true">
         Page not found
       </p>
-      <Button variant="outline" render={<Link to="/" />}>
+      <Button variant="outline" render={<Link to="/" />} nativeButton={false}>
         <HomeIcon className="size-4" />
         Go home
       </Button>

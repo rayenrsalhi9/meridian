@@ -14,3 +14,6 @@ export type { CreateRoleRequest, UpdateRoleRequest } from "./roles.js";
 
 export { createUserSchema, updateUserSchema } from "./users.js";
 export type { CreateUserRequest, UpdateUserRequest } from "./users.js";
+
+export { CLAIM_CATEGORIES, CLAIM_DEFINITIONS, getClaimLabel, getClaimCategory } from "./claims.js";
+export type { ClaimCategory, ClaimDefinition } from "./claims.js";

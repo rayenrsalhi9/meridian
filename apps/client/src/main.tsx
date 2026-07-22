@@ -10,6 +10,7 @@ import LoginPage from "@/pages/login-page.tsx";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { NotFoundPage } from "@/pages/not-found-page.tsx";
 import { PlaceholderPage } from "@/pages/placeholder-page.tsx";
+import { AdminRolesPage } from "@/pages/admin-roles-page.tsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -41,7 +42,7 @@ createRoot(document.getElementById("root")!).render(
                   />
                   <Route
                     path="admin/roles"
-                    element={<PlaceholderPage title="Roles" />}
+                    element={<AdminRolesPage />}
                   />
                 </Route>
                 <Route path="*" element={<NotFoundPage />} />
