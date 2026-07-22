@@ -115,11 +115,11 @@ export async function updateRole(
         .filter((c: { key: string }) => ADMIN_CLAIMS.has(c.key))
         .map((c: { key: string }) => c.key);
 
-      const lostAdminClaims = oldAdminClaimKeys.filter(
-        (k: string) => !newAdminClaimKeys.includes(k),
-      );
+      const hadAdmin = oldAdminClaimKeys.length > 0;
+      const hasAdmin = newAdminClaimKeys.length > 0;
+      const lostAllAdminClaims = hadAdmin && !hasAdmin;
 
-      if (lostAdminClaims.length > 0) {
+      if (lostAllAdminClaims) {
         const usersWithRole = await tx.user.findMany({
           where: { isActive: true, userRoles: { some: { roleId: id } } },
           select: {

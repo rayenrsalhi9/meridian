@@ -15,16 +15,29 @@ if (!existsSync(envPath)) {
   );
 }
 
-config({ path: envPath });
+config({ path: envPath, override: true });
 
 const { DATABASE_URL } = process.env;
+if (!DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set after loading .env.test");
+}
+
+let parsed: URL;
+try {
+  parsed = new URL(DATABASE_URL);
+} catch {
+  throw new Error(
+    `DATABASE_URL in .env.test is not a valid URL: ${DATABASE_URL}`,
+  );
+}
+
 if (
-  !DATABASE_URL ||
-  !DATABASE_URL.includes("localhost:5433") ||
-  !DATABASE_URL.includes("meridian_test")
+  parsed.hostname !== "localhost" ||
+  parsed.port !== "5433" ||
+  parsed.pathname !== "/meridian_test"
 ) {
   throw new Error(
-    "DATABASE_URL in .env.test must point to localhost:5433/meridian_test for integration tests",
+    `DATABASE_URL in .env.test must be postgresql://USER:PASS@localhost:5433/meridian_test, got ${parsed.hostname}:${parsed.port}${parsed.pathname}`,
   );
 }
 

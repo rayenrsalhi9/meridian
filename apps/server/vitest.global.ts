@@ -8,6 +8,12 @@ export async function setup(): Promise<void> {
     cwd: process.cwd(),
   });
 
+  const dbUrl = process.env.DATABASE_URL as string;
+  execSync(
+    `psql "${dbUrl}" -c 'TRUNCATE TABLE "User", "Role", "Claim", "UserRole", "RoleClaim", "RefreshToken" RESTART IDENTITY CASCADE'`,
+    { stdio: "inherit", cwd: process.cwd() },
+  );
+
   execSync("npx prisma db seed", {
     stdio: "inherit",
     cwd: process.cwd(),
