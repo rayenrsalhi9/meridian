@@ -129,6 +129,7 @@ function AlertDialogAction({
 }: React.ComponentPropsWithoutRef<"button">) {
   return (
     <button
+      type="button"
       data-slot="alert-dialog-action"
       className={cn(buttonVariants(), className)}
       {...props}
