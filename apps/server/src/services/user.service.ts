@@ -2,7 +2,6 @@ import bcrypt from "bcryptjs";
 import { ADMIN_CLAIM_KEYS } from "shared";
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../db.js";
-import { logger } from "../lib/logger.js";
 import { BCRYPT_ROUNDS } from "../lib/auth.js";
 import { resolveClaims, resolveClaimsInTx } from "./authorization.service.js";
 
@@ -162,7 +161,7 @@ export async function createUser(data: {
     return created;
   });
 
-  logger.info({ userId: user.id }, "User created by admin");
+  console.log("User created by admin", { userId: user.id });
 
   return toUserDTO(user);
 }
@@ -175,7 +174,17 @@ export async function createUser(data: {
 async function guardAndDeactivate(
   tx: Prisma.TransactionClient,
   id: string,
+  skipAdminCheck = false,
 ): Promise<{ ok: true } | { error: string; code: string }> {
+  if (skipAdminCheck) {
+    const now = new Date();
+    await tx.refreshToken.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    return { ok: true as const };
+  }
+
   const userRoles = await tx.userRole.findMany({
     where: { userId: id },
     select: { roleId: true },
@@ -234,6 +243,8 @@ export async function updateUser(
   let result: { ok: true } | { error: string; code?: string };
   try {
     result = await prisma.$transaction(async (tx) => {
+      let adminCheckDone = false;
+
       if (data.roleIds !== undefined) {
         const newClaims = await resolveClaimsInTx(tx, data.roleIds);
         const targetHasAdmin = [...ADMIN_CLAIMS].some((c) => newClaims.has(c));
@@ -241,11 +252,12 @@ export async function updateUser(
         if (!targetHasAdmin) {
           const checkResult = await ensureOtherAdminExists([id], tx);
           if (checkResult) return { error: checkResult.error, code: checkResult.code } as const;
+          adminCheckDone = true;
         }
       }
 
       if (data.isActive === false) {
-        const guard = await guardAndDeactivate(tx, id);
+        const guard = await guardAndDeactivate(tx, id, adminCheckDone);
         if ("error" in guard) return guard;
       }
 
@@ -287,7 +299,7 @@ export async function updateUser(
     select: userSelect,
   });
 
-  logger.info({ userId: id }, "User updated by admin");
+  console.log("User updated by admin", { userId: id });
 
   if (!finalUser) return { error: "User not found" } as const;
 
@@ -309,7 +321,7 @@ export async function deactivateUser(id: string) {
       data: { isActive: false },
     });
 
-    logger.info({ userId: id }, "User deactivated by admin");
+    console.log("User deactivated by admin", { userId: id });
     return { success: true as const };
   });
 

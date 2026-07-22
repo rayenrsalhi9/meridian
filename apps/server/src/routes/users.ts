@@ -1,5 +1,4 @@
 import { Router } from "express";
-import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import {
   changePasswordRequestSchema,
   resetPasswordRequestSchema,
@@ -9,6 +8,7 @@ import {
 import { requireAuth } from "../middleware/auth.js";
 import { requireClaim } from "../middleware/requireClaim.js";
 import { authConfig } from "../lib/auth.js";
+import { rateLimiter } from "../lib/rate-limiter.js";
 import {
   changeUserPassword,
   resetUserPassword,
@@ -23,20 +23,15 @@ import {
 
 const router = Router();
 
-const changePasswordLimiter = rateLimit({
+const changePasswordLimiter = rateLimiter({
   windowMs: authConfig.changePasswordRateLimit.windowMs,
   max: authConfig.changePasswordRateLimit.max,
   keyGenerator: (req) => {
-    const ip = ipKeyGenerator(req.ip ?? "");
+    const ip = req.ip ?? "unknown";
     const userId =
       (req as { user?: { userId: string } }).user?.userId ?? "unknown";
     return `${ip}:${userId}`;
   },
-  handler: (_req, res) => {
-    res.status(401).json({ error: "Current password is incorrect" });
-  },
-  standardHeaders: false,
-  legacyHeaders: false,
 });
 
 router.get("/", requireAuth, requireClaim("USER_MANAGE"), async (req, res) => {
@@ -146,8 +141,8 @@ router.delete(
 router.post(
   "/:id/change-password",
   requireAuth,
-  changePasswordLimiter,
   async (req, res) => {
+    if (!changePasswordLimiter(req, res)) return;
     if (req.user!.userId !== req.params.id) {
       res.status(403).json({ error: "You can only change your own password" });
       return;

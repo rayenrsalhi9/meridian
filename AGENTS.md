@@ -41,6 +41,10 @@ docs/          — SDLC planning docs useful for understanding planned architect
 - **Auth:** JWT access tokens (15m) + httpOnly refresh token cookies (7d rotation, with revocation/grace period)
 - **RBAC:** `User` ↔ `UserRole` ↔ `Role` ↔ `RoleClaim` ↔ `Claim` — 6 tables, 6 migrations applied
 - **Middleware:** `requireAuth` (JWT verification), `requireClaim` (claim-based guard)
+- **Logging:** `console.log`/`warn`/`error` (no pino)
+- **Cookie parsing:** Inline `parseCookies` helper (no cookie-parser)
+- **Rate limiting:** In-memory `rateLimiter` helper (no express-rate-limit)
+- **Env loading:** `--env-file` flag via tsx/Node (dotenv only in vitest config for test env)
 
 ## Client (apps/client)
 
@@ -69,4 +73,5 @@ docs/          — SDLC planning docs useful for understanding planned architect
 - **DB config:** Root `.env` provides `POSTGRES_*` for Docker Compose; `apps/server/.env` provides `DATABASE_URL` and `JWT_SECRET`. Both must stay in sync.
 - **`packages/shared`** has no build step — its `main` and `exports` point directly at `./src/index.ts`. Workspace consumers import raw TypeScript.
 - **Client lint** uses its own `.oxlintrc.json` with React plugin rules (root lint omits those).
+- **Ponytail plugin active** (`@dietrichgebert/ponytail` in global opencode config) — lazy senior dev mode: YAGNI, stdlib first, native platform, reuse, one-liners, only then write the minimum.
 - No CI, no pre-commit hooks, no release process yet.

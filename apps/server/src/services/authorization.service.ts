@@ -1,39 +1,12 @@
 import { prisma } from "../db.js";
 import { Prisma } from "../generated/prisma/client.js";
 
-export interface ClaimCacheStore {
-  get(roleId: string): Set<string> | undefined;
-  set(roleId: string, claims: Set<string>): void;
-  delete(roleId: string): boolean;
-}
-
-class InMemoryClaimCache implements ClaimCacheStore {
-  private store = new Map<string, Set<string>>();
-
-  get(roleId: string): Set<string> | undefined {
-    return this.store.get(roleId);
-  }
-
-  set(roleId: string, claims: Set<string>): void {
-    this.store.set(roleId, claims);
-  }
-
-  delete(roleId: string): boolean {
-    return this.store.delete(roleId);
-  }
-}
-
-export let claimCache: ClaimCacheStore = new InMemoryClaimCache();
+export const claimCache = new Map<string, Set<string>>();
 
 export function resetForTests(): void {
-  claimCache = new InMemoryClaimCache();
+  claimCache.clear();
 }
 
-/**
- * resolveClaims variant that runs inside a Prisma $transaction callback.
- * Skips the in-memory cache (transactional reads could roll back) and uses
- * the transaction client for a consistent snapshot.
- */
 export async function resolveClaimsInTx(
   tx: Prisma.TransactionClient,
   roleIds: string[],
@@ -51,7 +24,7 @@ export async function resolveClaimsInTx(
 }
 
 export async function resolveClaims(roleIds: string[]): Promise<Set<string>> {
-  const uncached = roleIds.filter((id) => !claimCache.get(id));
+  const uncached = roleIds.filter((id) => !claimCache.has(id));
 
   if (uncached.length > 0) {
     const roleClaims = await prisma.roleClaim.findMany({

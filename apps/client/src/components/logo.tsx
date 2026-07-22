@@ -13,14 +13,4 @@ export const LogoIcon = ({
   />
 );
 
-export const Logo = ({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"img">) => (
-  <img
-    src="/meridian-icon.webp"
-    alt="Meridian"
-    className={cn("h-6", className)}
-    {...props}
-  />
-);
+

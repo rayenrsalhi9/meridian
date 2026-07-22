@@ -1,5 +1,4 @@
 import { prisma } from "../db.js";
-import { logger } from "../lib/logger.js";
 import { invalidateRole, resolveClaimsInTx } from "./authorization.service.js";
 import { ADMIN_CLAIMS, ensureOtherAdminExists } from "./user.service.js";
 
@@ -73,7 +72,7 @@ export async function createRole(data: {
   });
 
   invalidateRole(role.id);
-  logger.info({ roleId: role.id, name: role.name }, "Role created");
+  console.log("Role created", { roleId: role.id, name: role.name });
 
   return {
     id: role.id,
@@ -186,7 +185,7 @@ export async function updateRole(
   if ("error" in result) return result;
 
   invalidateRole(id);
-  logger.info({ roleId: id }, "Role updated");
+  console.log("Role updated", { roleId: id });
 
   return getRole(id);
 }
@@ -242,7 +241,7 @@ export async function deleteRole(id: string) {
   if ("error" in result) return result;
 
   invalidateRole(id);
-  logger.info({ roleId: id, name: existing.name }, "Role deleted");
+  console.log("Role deleted", { roleId: id, name: existing.name });
 
   return { success: true as const };
 }

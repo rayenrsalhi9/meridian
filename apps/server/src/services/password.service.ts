@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../db.js";
-import { logger } from "../lib/logger.js";
 import { BCRYPT_ROUNDS } from "../lib/auth.js";
 
 export async function changeUserPassword(
@@ -14,16 +13,13 @@ export async function changeUserPassword(
   });
 
   if (!user) {
-    logger.warn({ userId }, "Password change attempted for non-existent user");
+    console.warn("Password change attempted for non-existent user", { userId });
     return { success: false, error: "User not found" };
   }
 
   const valid = await bcrypt.compare(currentPassword, user.passwordHash);
   if (!valid) {
-    logger.warn(
-      { userId },
-      "Failed password change: incorrect current password",
-    );
+    console.warn("Failed password change: incorrect current password", { userId });
     return { success: false, error: "Current password is incorrect" };
   }
 
@@ -39,7 +35,7 @@ export async function changeUserPassword(
     }),
   ]);
 
-  logger.info({ userId }, "Password changed successfully");
+  console.log("Password changed successfully", { userId });
   return { success: true };
 }
 
@@ -53,7 +49,7 @@ export async function resetUserPassword(
   });
 
   if (!user) {
-    logger.warn({ userId }, "Password reset attempted for non-existent user");
+    console.warn("Password reset attempted for non-existent user", { userId });
     return { success: false, error: "User not found" };
   }
 
@@ -69,6 +65,6 @@ export async function resetUserPassword(
     }),
   ]);
 
-  logger.info({ userId }, "Password reset by admin");
+  console.log("Password reset by admin", { userId });
   return { success: true };
 }
