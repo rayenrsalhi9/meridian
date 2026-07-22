@@ -2,11 +2,13 @@ export {
   loginRequestSchema,
   changePasswordRequestSchema,
   resetPasswordRequestSchema,
+  updateProfileSchema,
 } from "./auth.js";
 export type {
   LoginRequest,
   ChangePasswordRequest,
   ResetPasswordRequest,
+  UpdateProfileRequest,
 } from "./auth.js";
 
 export { createRoleSchema, updateRoleSchema } from "./roles.js";

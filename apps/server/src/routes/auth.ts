@@ -1,6 +1,8 @@
 import { Router } from "express";
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
-import { loginRequestSchema } from "shared";
+import { loginRequestSchema, updateProfileSchema } from "shared";
+import { requireAuth } from "../middleware/auth.js";
+import { prisma } from "../db.js";
 import { logger } from "../lib/logger.js";
 import {
   loginUser,
@@ -101,6 +103,42 @@ router.post("/logout", async (req, res) => {
 
   res.clearCookie(REFRESH_COOKIE, COOKIE_OPTIONS);
   res.status(200).json({ message: "Logged out" });
+});
+
+router.get("/me", requireAuth, async (req, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.userId },
+    select: { id: true, firstName: true, lastName: true, email: true },
+  });
+
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  res.json(user);
+});
+
+router.put("/me", requireAuth, async (req, res) => {
+  const parsed = updateProfileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Validation failed",
+      details: parsed.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  const { firstName, lastName } = parsed.data;
+
+  const user = await prisma.user.update({
+    where: { id: req.user!.userId },
+    data: { firstName, lastName },
+    select: { id: true, firstName: true, lastName: true, email: true },
+  });
+
+  logger.info({ userId: user.id }, "Profile updated");
+  res.json(user);
 });
 
 export default router;
