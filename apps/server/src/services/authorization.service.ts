@@ -28,6 +28,27 @@ export function resetForTests(): void {
   claimCache = new InMemoryClaimCache();
 }
 
+/**
+ * resolveClaims variant that runs inside a Prisma $transaction callback.
+ * Skips the in-memory cache (transactional reads could roll back) and uses
+ * the transaction client for a consistent snapshot.
+ */
+export async function resolveClaimsInTx(
+  tx: { roleClaim: { findMany: (args: any) => Promise<any> } },
+  roleIds: string[],
+): Promise<Set<string>> {
+  if (roleIds.length === 0) return new Set();
+  const roleClaims = await tx.roleClaim.findMany({
+    where: { roleId: { in: roleIds } },
+    include: { claim: { select: { key: true } } },
+  });
+  const all = new Set<string>();
+  for (const rc of roleClaims as Array<{ claim: { key: string } }>) {
+    all.add(rc.claim.key);
+  }
+  return all;
+}
+
 export async function resolveClaims(roleIds: string[]): Promise<Set<string>> {
   const uncached = roleIds.filter((id) => !claimCache.get(id));
 

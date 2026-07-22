@@ -1,6 +1,6 @@
 import { prisma } from "../db.js";
 import { logger } from "../lib/logger.js";
-import { invalidateRole, resolveClaims } from "./authorization.service.js";
+import { invalidateRole, resolveClaimsInTx } from "./authorization.service.js";
 import { ADMIN_CLAIMS, ensureOtherAdminExists } from "./user.service.js";
 
 export async function listRoles() {
@@ -103,7 +103,7 @@ export async function updateRole(
       });
       const oldAdminClaimKeys = oldClaims
         .filter((rc: { claim: { key: string } }) =>
-          ADMIN_CLAIMS.has(rc.claim.key),
+          ADMIN_CLAIMS.has(rc.claim.key as any),
         )
         .map((rc: { claim: { key: string } }) => rc.claim.key);
 
@@ -112,7 +112,7 @@ export async function updateRole(
         select: { key: true },
       });
       const newAdminClaimKeys = newClaimRecords
-        .filter((c: { key: string }) => ADMIN_CLAIMS.has(c.key))
+        .filter((c: { key: string }) => ADMIN_CLAIMS.has(c.key as any))
         .map((c: { key: string }) => c.key);
 
       const lostAdminClaims = oldAdminClaimKeys.filter(
@@ -136,7 +136,7 @@ export async function updateRole(
 
           let otherHasAdmin = false;
           if (otherRoleIds.length > 0) {
-            const otherClaims = await resolveClaims(otherRoleIds);
+            const otherClaims = await resolveClaimsInTx(tx as any, otherRoleIds);
             for (const claim of ADMIN_CLAIMS) {
               if (otherClaims.has(claim)) {
                 otherHasAdmin = true;
@@ -151,8 +151,8 @@ export async function updateRole(
         }
 
         if (losingAdmin.length > 0) {
-          const error = await ensureOtherAdminExists(losingAdmin, tx);
-          if (error) return { error };
+          const checkResult = await ensureOtherAdminExists(losingAdmin, tx as any);
+          if (checkResult) return { error: checkResult.error, code: checkResult.code };
         }
       }
     }
@@ -213,7 +213,7 @@ export async function deleteRole(id: string) {
 
       let otherHasAdmin = false;
       if (otherRoleIds.length > 0) {
-        const otherClaims = await resolveClaims(otherRoleIds);
+        const otherClaims = await resolveClaimsInTx(tx as any, otherRoleIds);
         for (const claim of ADMIN_CLAIMS) {
           if (otherClaims.has(claim)) {
             otherHasAdmin = true;
@@ -228,8 +228,8 @@ export async function deleteRole(id: string) {
     }
 
     if (losingAdmin.length > 0) {
-      const error = await ensureOtherAdminExists(losingAdmin, tx);
-      if (error) return { error };
+      const checkResult = await ensureOtherAdminExists(losingAdmin, tx as any);
+      if (checkResult) return { error: checkResult.error, code: checkResult.code };
     }
 
     await tx.userRole.deleteMany({ where: { roleId: id } });

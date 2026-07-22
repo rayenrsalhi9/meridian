@@ -66,9 +66,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+import { ADMIN_CLAIM_KEYS as ADMIN_CLAIM_KEYS_ARRAY } from "shared"
 import { getAvatarColor, getInitials } from "@/lib/user-utils"
 
-const ADMIN_CLAIM_KEYS = new Set(["ROLE_MANAGE", "USER_MANAGE"])
+const ADMIN_CLAIM_KEYS = new Set<string>(ADMIN_CLAIM_KEYS_ARRAY)
 
 const PASSWORD_RULES = [
   { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
@@ -148,6 +149,7 @@ export function AdminUsersPage() {
     null,
   )
   const [deactivating, setDeactivating] = useState(false)
+  const [toggleError, setToggleError] = useState<string | null>(null)
   const [togglingActive, setTogglingActive] = useState<Set<string>>(new Set())
 
   const fetchData = useCallback(async () => {
@@ -384,10 +386,7 @@ export function AdminUsersPage() {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        if (
-          data.error ===
-          "Cannot remove administrative privileges from the last admin user"
-        ) {
+        if (data.code === "LAST_ADMIN") {
           throw new Error(data.error)
         }
         throw new Error(data.error || "Failed to deactivate user")
@@ -449,12 +448,13 @@ export function AdminUsersPage() {
 
   function confirmDeactivate(user: UserItem) {
     setDeactivatingUser(user)
+    setToggleError(null)
   }
 
   async function performToggleActive(user: UserItem) {
     const targetActive = !user.isActive
     setTogglingActive((prev) => new Set(prev).add(user.id))
-    const previousUsers = users
+    setToggleError(null)
     setUsers((prev) =>
       prev.map((u) =>
         u.id === user.id ? { ...u, isActive: targetActive } : u,
@@ -467,11 +467,16 @@ export function AdminUsersPage() {
         body: JSON.stringify({ isActive: targetActive }),
       })
       if (!res.ok) {
-        throw new Error("Failed to update user")
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to update user")
       }
     } catch (err) {
-      setUsers(previousUsers)
-      setError(
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === user.id ? { ...u, isActive: !targetActive } : u,
+        ),
+      )
+      setToggleError(
         err instanceof Error ? err.message : "Failed to update user status",
       )
     } finally {
@@ -576,7 +581,10 @@ export function AdminUsersPage() {
           />
           <Input
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              setToggleError(null)
+            }}
             placeholder="Search by name or email…"
             className="pl-8"
             aria-label="Search users"
@@ -594,7 +602,10 @@ export function AdminUsersPage() {
         <div className="w-full sm:w-[200px]">
           <Select
             value={roleFilter}
-            onValueChange={(value) => setRoleFilter(value ?? "all")}
+            onValueChange={(value) => {
+              setRoleFilter(value ?? "all")
+              setToggleError(null)
+            }}
           >
             <SelectTrigger className="w-full" aria-label="Filter by role">
               <SelectValue placeholder="All roles">
@@ -616,6 +627,21 @@ export function AdminUsersPage() {
       </div>
 
       <Separator />
+
+      {toggleError && (
+        <div className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <p className="text-sm text-destructive" role="alert">
+            {toggleError}
+          </p>
+          <button
+            onClick={() => setToggleError(null)}
+            className="text-destructive/60 hover:text-destructive"
+            aria-label="Dismiss error"
+          >
+            <XIcon className="size-4" />
+          </button>
+        </div>
+      )}
 
       {users.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16">
@@ -643,7 +669,17 @@ export function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => {
+              {filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-12 text-center text-sm text-muted-foreground"
+                  >
+                    No users match your filters
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredUsers.map((user) => {
                 const admin = isUserAdmin(user)
                 const deleteBlocked = wouldDeleteLeaveZeroAdmins(user)
                 return (
@@ -763,7 +799,8 @@ export function AdminUsersPage() {
                     </TableCell>
                   </TableRow>
                 )
-              })}
+              })
+              )}
             </TableBody>
           </Table>
         </div>

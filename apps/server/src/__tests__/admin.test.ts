@@ -126,6 +126,7 @@ function userTx(overrides?: Record<string, unknown>) {
       deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
+    roleClaim: { findMany: vi.fn().mockResolvedValue([]) },
     ...overrides,
   };
 }
@@ -406,7 +407,10 @@ describe("Roles API", () => {
           update: vi.fn(),
         },
         roleClaim: {
-          findMany: vi.fn().mockResolvedValueOnce(ADMIN_CLAIMS),
+          findMany: vi
+            .fn()
+            .mockResolvedValueOnce(ADMIN_CLAIMS) // for tx.roleClaim.findMany (role's current claims)
+            .mockResolvedValueOnce([] as never), // for resolveClaimsInTx(tx, [ROLE_ID_2])
           deleteMany: vi.fn(),
           createMany: vi.fn(),
         },
@@ -424,8 +428,7 @@ describe("Roles API", () => {
         },
       });
       vi.mocked(prisma.roleClaim.findMany)
-        .mockResolvedValueOnce(ADMIN_CLAIMS) // for requireClaim
-        .mockResolvedValueOnce([] as never); // for resolveClaims([ROLE_ID_2])
+        .mockResolvedValueOnce(ADMIN_CLAIMS); // for requireClaim
       tx.claim.findMany.mockResolvedValueOnce([
         { id: CLAIM_ID_3, key: "DOCUMENT_CREATE" },
       ]);
@@ -507,7 +510,7 @@ describe("Roles API", () => {
         role: { delete: vi.fn() },
       };
       (prisma.$transaction as any).mockImplementation(
-        async (fn: (tx: typeof tx) => unknown) => fn(tx),
+        async (fn: (arg: unknown) => unknown) => fn(tx),
       );
 
       const res = await request(app)
@@ -534,8 +537,7 @@ describe("Roles API", () => {
         },
       ] as never;
       vi.mocked(prisma.roleClaim.findMany)
-        .mockResolvedValueOnce(ADMIN_CLAIMS) // for requireClaim
-        .mockResolvedValueOnce(OTHER_ADMIN_CLAIMS); // for resolveClaims([ROLE_ID_2])
+        .mockResolvedValueOnce(ADMIN_CLAIMS); // for requireClaim
 
       vi.mocked(prisma.role.findUnique).mockResolvedValueOnce({
         id: ADMIN_ROLE_ID,
@@ -555,11 +557,11 @@ describe("Roles API", () => {
             ] as never),
         },
         userRole: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
-        roleClaim: { deleteMany: vi.fn().mockResolvedValue({ count: 3 }) },
+        roleClaim: { findMany: vi.fn().mockResolvedValue(OTHER_ADMIN_CLAIMS), deleteMany: vi.fn().mockResolvedValue({ count: 3 }) },
         role: { delete: vi.fn().mockResolvedValue({ id: ADMIN_ROLE_ID }) },
       };
       (prisma.$transaction as any).mockImplementation(
-        async (fn: (tx: typeof tx) => unknown) => fn(tx),
+        async (fn: (arg: unknown) => unknown) => fn(tx),
       );
 
       const res = await request(app)
@@ -803,6 +805,7 @@ describe("Users API", () => {
             ] as never),
           update: vi.fn().mockResolvedValue(undefined),
         },
+        roleClaim: { findMany: vi.fn().mockResolvedValue(ADMIN_CLAIMS) },
       });
       mockTransactionCallback(tx);
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
@@ -969,6 +972,7 @@ describe("Users API", () => {
           update: vi.fn(),
         },
         userRole: { deleteMany: vi.fn(), createMany: vi.fn() },
+        roleClaim: { findMany: vi.fn().mockResolvedValue([]) },
       });
       mockTransactionCallback(tx);
 
@@ -1003,6 +1007,7 @@ describe("Users API", () => {
             .fn()
             .mockResolvedValueOnce([{ roleId: ADMIN_ROLE_ID }] as never),
         },
+        roleClaim: { findMany: vi.fn().mockResolvedValue(ADMIN_CLAIMS) },
         refreshToken: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
       };
       mockTransactionCallback(tx);
@@ -1038,6 +1043,7 @@ describe("Users API", () => {
             .fn()
             .mockResolvedValueOnce([{ roleId: ADMIN_ROLE_ID }] as never),
         },
+        roleClaim: { findMany: vi.fn().mockResolvedValue(ADMIN_CLAIMS) },
       };
       mockTransactionCallback(tx);
 

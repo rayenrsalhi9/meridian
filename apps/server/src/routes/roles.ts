@@ -76,7 +76,7 @@ router.put("/:id", async (req, res) => {
       return;
     }
     if ("error" in result) {
-      res.status(400).json({ error: result.error });
+      res.status(400).json(result);
       return;
     }
     res.json(result);
@@ -93,7 +93,7 @@ router.delete("/:id", async (req, res) => {
   const result = await deleteRole(req.params.id);
   if ("error" in result) {
     const statusCode = result.error === "Role not found" ? 404 : 400;
-    res.status(statusCode).json({ error: result.error });
+    res.status(statusCode).json(result);
     return;
   }
   res.status(204).end();

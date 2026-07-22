@@ -1,3 +1,5 @@
+export const ADMIN_CLAIM_KEYS = ["ROLE_MANAGE", "USER_MANAGE"] as const;
+
 export const CLAIM_CATEGORIES = [
   "Documents",
   "Forums",

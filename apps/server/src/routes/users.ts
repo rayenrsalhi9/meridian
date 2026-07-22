@@ -112,7 +112,9 @@ router.put(
           : result.error === "Email already in use"
             ? 409
             : 400;
-      res.status(status).json({ error: result.error });
+      const body: { error: string; code?: string } = { error: result.error };
+      if ("code" in result) body.code = result.code;
+      res.status(status).json(body);
       return;
     }
     res.json(result);
@@ -134,7 +136,7 @@ router.delete(
       } else {
         status = 400;
       }
-      res.status(status).json({ error: result.error });
+      res.status(status).json(result);
       return;
     }
     res.status(204).end();
