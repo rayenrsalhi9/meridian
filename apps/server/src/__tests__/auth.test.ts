@@ -398,10 +398,11 @@ describe("PUT /api/v1/auth/me", () => {
   });
 
   afterEach(async () => {
-    await request(app)
+    const res = await request(app)
       .put("/api/v1/auth/me")
       .set("Authorization", `Bearer ${accessToken}`)
       .send({ firstName: "Admin", lastName: "User" });
+    expect(res.status).toBe(200);
   });
 
   it("updates firstName and lastName successfully", async () => {

@@ -6,7 +6,7 @@ import { logger } from "../lib/logger.js";
 import { BCRYPT_ROUNDS } from "../lib/auth.js";
 import { resolveClaims, resolveClaimsInTx } from "./authorization.service.js";
 
-export const ADMIN_CLAIMS = new Set(ADMIN_CLAIM_KEYS);
+export const ADMIN_CLAIMS: Set<string> = new Set(ADMIN_CLAIM_KEYS);
 
 export const LAST_ADMIN_ERROR =
   "Cannot remove administrative privileges from the last admin user";
@@ -27,9 +27,13 @@ export interface AdminCheckResult {
  */
 export async function ensureOtherAdminExists(
   userIdsPotentiallyLosingAdmin: string[],
-  tx?: { user: { findMany: (args: any) => Promise<any> }; roleClaim: { findMany: (args: any) => Promise<any> } },
+  tx?: Prisma.TransactionClient,
 ): Promise<AdminCheckResult | null> {
   if (userIdsPotentiallyLosingAdmin.length === 0) return null;
+
+  if (tx) {
+    await tx.$queryRawUnsafe("SELECT pg_advisory_xact_lock(42)");
+  }
 
   const client = tx ?? prisma;
   const rows =
@@ -169,28 +173,14 @@ export async function createUser(data: {
  * Does NOT update the user record itself — the caller owns that step.
  */
 async function guardAndDeactivate(
-  tx: {
-    userRole: {
-      findMany(args: {
-        where: Record<string, unknown>;
-        select: Record<string, unknown>;
-      }): Promise<Array<Record<string, unknown>>>;
-    };
-    roleClaim: { findMany: (args: any) => Promise<any> };
-    refreshToken: {
-      updateMany(args: {
-        where: Record<string, unknown>;
-        data: Record<string, unknown>;
-      }): Promise<{ count: number }>;
-    };
-  },
+  tx: Prisma.TransactionClient,
   id: string,
 ): Promise<{ ok: true } | { error: string; code: string }> {
   const userRoles = await tx.userRole.findMany({
     where: { userId: id },
     select: { roleId: true },
   });
-  const targetRoleIds = (userRoles as Array<{ roleId: string }>).map(
+  const targetRoleIds = userRoles.map(
     (ur) => ur.roleId,
   );
 
@@ -206,7 +196,7 @@ async function guardAndDeactivate(
   }
 
   if (targetIsAdmin) {
-    const result = await ensureOtherAdminExists([id], tx as any);
+    const result = await ensureOtherAdminExists([id], tx);
     if (result) return { error: result.error, code: result.code } as const;
   }
 

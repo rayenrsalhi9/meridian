@@ -10,7 +10,7 @@ Early-stage full-stack monorepo (npm workspaces) — React/Vite client + Express
 | Lint         | `npm run lint` (oxlint, from root)                         |
 | Format       | `npm run format` (prettier --write)                        |
 | Typecheck    | `npm run typecheck` (per-workspace `typecheck` if present) |
-| Server tests | `npm run test -w apps/server` (`vitest run`, 15s timeout)  |
+| Server tests | `npm run test -w apps/server` (`vitest run`, 15s timeout; requires `apps/server/.env.test` + `postgres_test` container up) |
 | Server t:w   | `npm run test:watch -w apps/server`                        |
 | Client build | `npm run build -w apps/client` (`tsc -b && vite build`)    |
 | Server build | `npm run build -w apps/server` (`prisma generate && tsc`)  |
@@ -19,7 +19,7 @@ No client tests yet. No CI yet.
 
 ## Monorepo layout
 
-```
+```text
 apps/client/   — React 19 SPA (Vite, Tailwind v4 w/ @tailwindcss/vite, shadcn/ui, React Router 8)
 apps/server/   — Express 5 API (tsx dev runner, port 4000)
 packages/shared/ — Zod schemas + types for auth, users, roles, claims (importable as "shared")

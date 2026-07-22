@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { Prisma } from "../generated/prisma/client.js";
 
 export interface ClaimCacheStore {
   get(roleId: string): Set<string> | undefined;
@@ -34,7 +35,7 @@ export function resetForTests(): void {
  * the transaction client for a consistent snapshot.
  */
 export async function resolveClaimsInTx(
-  tx: { roleClaim: { findMany: (args: any) => Promise<any> } },
+  tx: Prisma.TransactionClient,
   roleIds: string[],
 ): Promise<Set<string>> {
   if (roleIds.length === 0) return new Set();
@@ -43,7 +44,7 @@ export async function resolveClaimsInTx(
     include: { claim: { select: { key: true } } },
   });
   const all = new Set<string>();
-  for (const rc of roleClaims as Array<{ claim: { key: string } }>) {
+  for (const rc of roleClaims) {
     all.add(rc.claim.key);
   }
   return all;
