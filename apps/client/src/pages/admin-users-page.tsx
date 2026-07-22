@@ -66,21 +66,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { ADMIN_CLAIM_KEYS as ADMIN_CLAIM_KEYS_ARRAY } from "shared"
+import { ADMIN_CLAIM_KEYS as ADMIN_CLAIM_KEYS_ARRAY, PASSWORD_RULES } from "shared"
 import { getAvatarColor, getInitials } from "@/lib/user-utils"
 
 const ADMIN_CLAIM_KEYS = new Set<string>(ADMIN_CLAIM_KEYS_ARRAY)
-
-const PASSWORD_RULES = [
-  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
-  { label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
-  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
-  {
-    label: "One special character",
-    test: (p: string) => /[^a-zA-Z0-9]/.test(p),
-  },
-]
 
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat("en-US", {

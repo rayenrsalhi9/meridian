@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { apiClient } from "@/lib/api-client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
+import { PASSWORD_RULES } from "shared";
 import {
   Card,
   CardContent,
@@ -15,14 +16,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckIcon } from "lucide-react";
-
-const PASSWORD_RULES = [
-  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
-  { label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
-  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
-  { label: "One special character", test: (p: string) => /[^a-zA-Z0-9]/.test(p) },
-];
 
 export function ProfilePage() {
   const { user, profile, refetchProfile } = useAuth();
