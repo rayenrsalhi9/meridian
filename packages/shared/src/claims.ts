@@ -1,4 +1,5 @@
 export const ADMIN_CLAIM_KEYS = ["ROLE_MANAGE", "USER_MANAGE"] as const;
+export const ADMIN_CLAIM_KEYS_SET: ReadonlySet<string> = new Set(ADMIN_CLAIM_KEYS);
 
 export const CLAIM_CATEGORIES = [
   "Documents",

@@ -101,18 +101,16 @@ export async function updateRole(
         include: { claim: { select: { key: true } } },
       });
       const oldAdminClaimKeys = oldClaims
-        .filter((rc: { claim: { key: string } }) =>
-          ADMIN_CLAIMS.has(rc.claim.key),
-        )
-        .map((rc: { claim: { key: string } }) => rc.claim.key);
+        .filter((rc) => ADMIN_CLAIMS.has(rc.claim.key))
+        .map((rc) => rc.claim.key);
 
       const newClaimRecords = await tx.claim.findMany({
         where: { id: { in: data.claimIds } },
         select: { key: true },
       });
       const newAdminClaimKeys = newClaimRecords
-        .filter((c: { key: string }) => ADMIN_CLAIMS.has(c.key))
-        .map((c: { key: string }) => c.key);
+        .filter((c) => ADMIN_CLAIMS.has(c.key))
+        .map((c) => c.key);
 
       const hadAdmin = oldAdminClaimKeys.length > 0;
       const hasAdmin = newAdminClaimKeys.length > 0;
@@ -131,8 +129,8 @@ export async function updateRole(
         const losingAdmin: string[] = [];
         for (const user of usersWithRole) {
           const otherRoleIds = user.userRoles
-            .filter((ur: { roleId: string }) => ur.roleId !== id)
-            .map((ur: { roleId: string }) => ur.roleId);
+            .filter((ur) => ur.roleId !== id)
+            .map((ur) => ur.roleId);
 
           let otherHasAdmin = false;
           if (otherRoleIds.length > 0) {
@@ -171,7 +169,7 @@ export async function updateRole(
       await tx.roleClaim.deleteMany({ where: { roleId: id } });
       if (data.claimIds.length > 0) {
         await tx.roleClaim.createMany({
-          data: data.claimIds.map((claimId: string) => ({
+          data: data.claimIds.map((claimId) => ({
             roleId: id,
             claimId,
           })),
@@ -196,14 +194,10 @@ export async function deleteRole(id: string) {
   if (!existing) return { error: "Role not found" } as const;
 
   const result = await prisma.$transaction(async (tx) => {
-    const usersWithRole =
-      ((await tx.user.findMany({
-        where: { isActive: true, userRoles: { some: { roleId: id } } },
-        select: { id: true, userRoles: { select: { roleId: true } } },
-      })) as Array<{
-        id: string;
-        userRoles: Array<{ roleId: string }>;
-      }> | null) ?? [];
+    const usersWithRole = await tx.user.findMany({
+      where: { isActive: true, userRoles: { some: { roleId: id } } },
+      select: { id: true, userRoles: { select: { roleId: true } } },
+    });
 
     const losingAdmin: string[] = [];
     for (const user of usersWithRole) {

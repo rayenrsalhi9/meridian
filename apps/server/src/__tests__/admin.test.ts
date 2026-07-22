@@ -100,6 +100,7 @@ function mockTransactionCallback(tx: Record<string, unknown>) {
 /** Build a tx object with mock methods for role tests */
 function roleTx(overrides?: Record<string, unknown>) {
   return {
+    $queryRawUnsafe: vi.fn(),
     role: {
       findUnique: vi.fn(),
       update: vi.fn().mockResolvedValue(undefined),
@@ -118,6 +119,7 @@ function roleTx(overrides?: Record<string, unknown>) {
 /** Build a tx object with mock methods for user tests */
 function userTx(overrides?: Record<string, unknown>) {
   return {
+    $queryRawUnsafe: vi.fn(),
     user: {
       findMany: vi.fn(),
       update: vi.fn().mockResolvedValue(undefined),
@@ -455,7 +457,8 @@ describe("Roles API", () => {
       } as never);
 
       const txMock = {
-        user: { findMany: vi.fn() },
+        $queryRawUnsafe: vi.fn(),
+        user: { findMany: vi.fn().mockResolvedValue([]) },
         userRole: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
         roleClaim: { deleteMany: vi.fn().mockResolvedValue({ count: 3 }) },
         role: { delete: vi.fn().mockResolvedValue({ id: ROLE_ID_1 }) },
@@ -498,15 +501,16 @@ describe("Roles API", () => {
       } as never);
 
       const tx = {
+        $queryRawUnsafe: vi.fn(),
         user: {
           findMany: vi
             .fn()
-            .mockResolvedValueOnce([
+            .mockResolvedValue([
               { id: USER_ID_1, userRoles: [{ roleId: ADMIN_ROLE_ID }] },
             ] as never),
         },
         userRole: { deleteMany: vi.fn() },
-        roleClaim: { deleteMany: vi.fn() },
+        roleClaim: { findMany: vi.fn().mockResolvedValue([]), deleteMany: vi.fn() },
         role: { delete: vi.fn() },
       };
       (prisma.$transaction as any).mockImplementation(
@@ -545,6 +549,7 @@ describe("Roles API", () => {
       } as never);
 
       const tx = {
+        $queryRawUnsafe: vi.fn(),
         user: {
           findMany: vi
             .fn()
@@ -991,16 +996,14 @@ describe("Users API", () => {
     it("soft-deletes a user and revokes refresh tokens", async () => {
       mockAdminClaims();
       const tx = {
+        $queryRawUnsafe: vi.fn(),
         user: {
-          findUnique: vi
-            .fn()
-            .mockResolvedValueOnce({ id: USER_ID_1, isActive: true }),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
           findMany: vi
             .fn()
             .mockResolvedValueOnce([
               { id: "other-admin", userRoles: [{ roleId: ADMIN_ROLE_ID }] },
             ]),
-          update: vi.fn().mockResolvedValue(undefined),
         },
         userRole: {
           findMany: vi
@@ -1017,12 +1020,10 @@ describe("Users API", () => {
         .set("Authorization", `Bearer ${adminToken}`);
 
       expect(res.status).toBe(204);
-      expect(tx.user.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: USER_ID_1 },
-          data: { isActive: false },
-        }),
-      );
+      expect(tx.user.updateMany).toHaveBeenCalledWith({
+        where: { id: USER_ID_1, isActive: true },
+        data: { isActive: false },
+      });
       expect(tx.refreshToken.updateMany).toHaveBeenCalledWith({
         where: { userId: USER_ID_1, revokedAt: null },
         data: { revokedAt: expect.any(Date) },
@@ -1032,10 +1033,9 @@ describe("Users API", () => {
     it("blocks deactivation of the last user with admin claims", async () => {
       mockAdminClaims();
       const tx = {
+        $queryRawUnsafe: vi.fn(),
         user: {
-          findUnique: vi
-            .fn()
-            .mockResolvedValueOnce({ id: USER_ID_1, isActive: true }),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
           findMany: vi.fn().mockResolvedValueOnce([]),
         },
         userRole: {
@@ -1060,9 +1060,10 @@ describe("Users API", () => {
       mockAdminClaims();
       const tx = {
         user: {
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
           findUnique: vi
             .fn()
-            .mockResolvedValueOnce({ id: USER_ID_1, isActive: false }),
+            .mockResolvedValueOnce({ id: USER_ID_1 }),
         },
       };
       mockTransactionCallback(tx);
@@ -1077,6 +1078,7 @@ describe("Users API", () => {
       mockAdminClaims();
       const tx = {
         user: {
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
           findUnique: vi.fn().mockResolvedValueOnce(null),
         },
       };

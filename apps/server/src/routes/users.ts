@@ -95,9 +95,7 @@ router.put(
           : result.error === "Email already in use"
             ? 409
             : 400;
-      const body: { error: string; code?: string } = { error: result.error };
-      if ("code" in result) body.code = result.code;
-      res.status(status).json(body);
+      res.status(status).json(result);
       return;
     }
     res.json(result);
