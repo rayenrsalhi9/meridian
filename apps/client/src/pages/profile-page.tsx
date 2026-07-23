@@ -86,8 +86,8 @@ export function ProfilePage() {
     const nameFilled = firstName.trim().length > 0 && lastName.trim().length > 0;
     const noErrors = Object.keys(profileErrors).length === 0;
     const changed =
-      firstName.trim() !== (profile?.firstName ?? "") ||
-      lastName.trim() !== (profile?.lastName ?? "");
+      firstName.trim() !== (profile?.firstName ?? "").trim() ||
+      lastName.trim() !== (profile?.lastName ?? "").trim();
     return nameFilled && noErrors && changed;
   }, [firstName, lastName, profileErrors, profile]);
 
@@ -176,6 +176,9 @@ export function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setShowCurrent(false);
+      setShowNew(false);
+      setShowConfirm(false);
       setPasswordTouched({
         currentPassword: false,
         newPassword: false,
@@ -378,7 +381,7 @@ export function ProfilePage() {
                   size="icon"
                   onClick={() => setShowCurrent(!showCurrent)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2"
-                  aria-label={showCurrent ? "Hide password" : "Show password"}
+                  aria-label={showCurrent ? "Hide current password" : "Show current password"}
                 >
                   {showCurrent ? (
                     <EyeOffIcon className="size-4" />
@@ -428,7 +431,7 @@ export function ProfilePage() {
                   size="icon"
                   onClick={() => setShowNew(!showNew)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2"
-                  aria-label={showNew ? "Hide password" : "Show password"}
+                  aria-label={showNew ? "Hide new password" : "Show new password"}
                 >
                   {showNew ? (
                     <EyeOffIcon className="size-4" />
@@ -498,7 +501,7 @@ export function ProfilePage() {
                   size="icon"
                   onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2"
-                  aria-label={showConfirm ? "Hide password" : "Show password"}
+                  aria-label={showConfirm ? "Hide confirmation password" : "Show confirmation password"}
                 >
                   {showConfirm ? (
                     <EyeOffIcon className="size-4" />
