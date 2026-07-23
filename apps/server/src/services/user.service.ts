@@ -3,7 +3,13 @@ import { ADMIN_CLAIM_KEYS } from "shared";
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../db.js";
 import { BCRYPT_ROUNDS } from "../lib/auth.js";
-import { resolveClaims, resolveClaimsInTx } from "./authorization.service.js";
+import { resolveClaimsInTx } from "./authorization.service.js";
+
+class TxError extends Error {
+  constructor(readonly payload: { error: string; code?: string }) {
+    super(payload.error);
+  }
+}
 
 export const ADMIN_CLAIMS: Set<string> = new Set(ADMIN_CLAIM_KEYS);
 
@@ -26,33 +32,24 @@ export interface AdminCheckResult {
  */
 export async function ensureOtherAdminExists(
   userIdsPotentiallyLosingAdmin: string[],
-  tx?: Prisma.TransactionClient,
+  tx: Prisma.TransactionClient,
 ): Promise<AdminCheckResult | null> {
   if (userIdsPotentiallyLosingAdmin.length === 0) return null;
 
-  if (tx) {
-    await tx.$queryRawUnsafe("SELECT pg_advisory_xact_lock(42)");
-  }
+  await tx.$queryRawUnsafe("SELECT pg_advisory_xact_lock(42)");
 
-  const client = tx ?? prisma;
-  const rows =
-    ((await client.user.findMany({
-      where: { id: { notIn: userIdsPotentiallyLosingAdmin }, isActive: true },
-      select: {
-        id: true,
-        userRoles: { select: { roleId: true } },
-      },
-    })) as Array<{
-      id: string;
-      userRoles: Array<{ roleId: string }>;
-    }> | null) ?? [];
+  const rows = await tx.user.findMany({
+    where: { id: { notIn: userIdsPotentiallyLosingAdmin }, isActive: true },
+    select: {
+      id: true,
+      userRoles: { select: { roleId: true } },
+    },
+  });
 
   for (const user of rows) {
     const roleIds = user.userRoles.map((ur) => ur.roleId);
     if (roleIds.length > 0) {
-      const claims = tx
-        ? await resolveClaimsInTx(tx, roleIds)
-        : await resolveClaims(roleIds);
+      const claims = await resolveClaimsInTx(tx, roleIds);
       for (const claim of ADMIN_CLAIMS) {
         if (claims.has(claim)) {
           return null;
@@ -257,8 +254,15 @@ export async function updateUser(
       }
 
       if (data.isActive === false) {
+        // Atomic claim — prevents concurrent deactivation race
+        const claimed = await tx.user.updateMany({
+          where: { id, isActive: true },
+          data: { isActive: false },
+        });
+        if (claimed.count === 0)
+          return { error: "User is already deactivated" } as const;
         const guard = await guardAndDeactivate(tx, id, adminCheckDone);
-        if ("error" in guard) return guard;
+        if ("error" in guard) throw new TxError(guard);
       }
 
       await tx.user.update({
@@ -283,6 +287,7 @@ export async function updateUser(
       return { ok: true as const };
     });
   } catch (err) {
+    if (err instanceof TxError) return err.payload;
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2002"
@@ -307,23 +312,27 @@ export async function updateUser(
 }
 
 export async function deactivateUser(id: string) {
-  const result = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({ where: { id } });
-    if (!user) return { error: "User not found" } as const;
-    if (!user.isActive)
-      return { error: "User is already deactivated" } as const;
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // Atomic claim — prevents concurrent deactivation race
+      const claimed = await tx.user.updateMany({
+        where: { id, isActive: true },
+        data: { isActive: false },
+      });
+      if (claimed.count === 0) {
+        const user = await tx.user.findUnique({ where: { id }, select: { id: true } });
+        if (!user) return { error: "User not found" } as const;
+        return { error: "User is already deactivated" } as const;
+      }
 
-    const guard = await guardAndDeactivate(tx, id);
-    if ("error" in guard) return guard;
+      const guard = await guardAndDeactivate(tx, id);
+      if ("error" in guard) throw new TxError(guard);
 
-    await tx.user.update({
-      where: { id },
-      data: { isActive: false },
+      console.log("User deactivated by admin", { userId: id });
+      return { success: true as const };
     });
-
-    console.log("User deactivated by admin", { userId: id });
-    return { success: true as const };
-  });
-
-  return result;
+  } catch (err) {
+    if (err instanceof TxError) return err.payload;
+    throw err;
+  }
 }

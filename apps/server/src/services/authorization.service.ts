@@ -4,6 +4,7 @@ import { Prisma } from "../generated/prisma/client.js";
 export const claimCache = new Map<string, Set<string>>();
 
 export function resetForTests(): void {
+  if (process.env.NODE_ENV !== "test") return;
   claimCache.clear();
 }
 

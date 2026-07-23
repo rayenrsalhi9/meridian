@@ -16,7 +16,7 @@ const BCRYPT_ROUNDS = 12;
 const DUMMY_PASSWORD_HASH =
   "$2b$12$QKooj7sysm30Ge8qpcopGeFnzts.kwkcyUJvYoAW3PFiAuziXMD02";
 
-export let refreshGracePeriodMs = 10_000;
+export const authConfig = { refreshGracePeriodMs: 10_000 };
 
 export interface AccessTokenPayload {
   sub: string;
@@ -89,7 +89,7 @@ export async function rotateRefreshToken(oldTokenValue: string): Promise<{
     });
     if (revoked?.revokedAt) {
       const timeSinceRevocation = Date.now() - revoked.revokedAt.getTime();
-      if (timeSinceRevocation > refreshGracePeriodMs) {
+      if (timeSinceRevocation > authConfig.refreshGracePeriodMs) {
         await prisma.refreshToken.updateMany({
           where: { userId: revoked.userId, revokedAt: null },
           data: { revokedAt: new Date() },

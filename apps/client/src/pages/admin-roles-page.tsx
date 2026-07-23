@@ -4,7 +4,7 @@ import { EditIcon, PlusIcon, ShieldIcon, Trash2Icon } from "lucide-react"
 import {
   CLAIM_DEFINITIONS,
   getClaimLabel,
-  ADMIN_CLAIM_KEYS as ADMIN_CLAIM_KEYS_ARRAY,
+  ADMIN_CLAIM_KEYS_SET,
   type ClaimCategory,
 } from "shared"
 import { apiClient } from "@/lib/api-client"
@@ -48,7 +48,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-const ADMIN_CLAIM_KEYS = new Set<string>(ADMIN_CLAIM_KEYS_ARRAY)
+import { formatDate } from "@/lib/user-utils"
+const ADMIN_CLAIM_KEYS = ADMIN_CLAIM_KEYS_SET
 
 interface ClaimItem {
   id: string
@@ -445,13 +446,7 @@ export function AdminRolesPage() {
                     </span>
                   </TableCell>
                   <TableCell className="text-muted-foreground tabular-nums whitespace-nowrap">
-                    {new Intl.DateTimeFormat("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    }).format(new Date(role.createdAt))}
+                    {formatDate(role.createdAt)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">

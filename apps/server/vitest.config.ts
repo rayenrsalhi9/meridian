@@ -48,5 +48,6 @@ export default defineConfig({
     globalSetup: ["./vitest.global.ts"],
     setupFiles: ["./vitest.setup.ts"],
     testTimeout: 15000,
+    exclude: ["**/node_modules/**", "**/dist/**", "**/dist-e2e/**"],
   },
 });

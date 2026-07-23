@@ -3,26 +3,26 @@ import { prisma } from "../db.js";
 import { BCRYPT_ROUNDS } from "../lib/auth.js";
 
 async function updatePassword(userId: string, newPassword: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true },
-  });
-
-  if (!user) return false;
-
   const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-  await prisma.$transaction([
-    prisma.user.update({
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!user) return false;
+
+    await tx.user.update({
       where: { id: userId },
       data: { passwordHash },
-    }),
-    prisma.refreshToken.updateMany({
+    });
+    await tx.refreshToken.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
-    }),
-  ]);
+    });
+    return true;
+  });
 
-  return true;
+  return result;
 }
 
 export async function changeUserPassword(

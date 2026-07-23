@@ -66,20 +66,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { ADMIN_CLAIM_KEYS as ADMIN_CLAIM_KEYS_ARRAY, PASSWORD_RULES } from "shared"
-import { getAvatarColor, getInitials } from "@/lib/user-utils"
+import { ADMIN_CLAIM_KEYS_SET, PASSWORD_RULES } from "shared"
+import { getAvatarColor, getInitials, formatDate } from "@/lib/user-utils"
 
-const ADMIN_CLAIM_KEYS = new Set<string>(ADMIN_CLAIM_KEYS_ARRAY)
-
-function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(dateStr))
-}
+const ADMIN_CLAIM_KEYS = ADMIN_CLAIM_KEYS_SET
 
 interface UserItem {
   id: string
@@ -323,7 +313,9 @@ export function AdminUsersPage() {
     setSaving(true)
     setSaveError(null)
     try {
-      const body: Record<string, unknown> = {
+      const body: {
+        firstName: string; lastName: string; email: string; roleIds: string[]; password?: string;
+      } = {
         firstName: formFirstName.trim(),
         lastName: formLastName.trim(),
         email: formEmail.trim(),
