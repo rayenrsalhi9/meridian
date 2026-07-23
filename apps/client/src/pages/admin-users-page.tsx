@@ -120,6 +120,7 @@ export function AdminUsersPage() {
 
   const [resettingUser, setResettingUser] = useState<UserItem | null>(null)
   const [resetNewPassword, setResetNewPassword] = useState("")
+  const [showResetPassword, setShowResetPassword] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetSuccess, setResetSuccess] = useState<string | null>(null)
@@ -1079,15 +1080,31 @@ export function AdminUsersPage() {
           ) : (
             <div className="flex flex-col gap-2">
               <Label htmlFor="reset-password">New password</Label>
-              <Input
-                id="reset-password"
-                type="password"
-                value={resetNewPassword}
-                onChange={(e) => setResetNewPassword(e.target.value)}
-                placeholder="Min. 8 characters…"
-                autoComplete="off"
-                name="reset-password"
-              />
+              <div className="relative">
+                <Input
+                  id="reset-password"
+                  type={showResetPassword ? "text" : "password"}
+                  value={resetNewPassword}
+                  onChange={(e) => setResetNewPassword(e.target.value)}
+                  placeholder="Min. 8 characters…"
+                  autoComplete="off"
+                  name="reset-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowResetPassword(!showResetPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showResetPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showResetPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
             </div>
           )}
           {resetError && (

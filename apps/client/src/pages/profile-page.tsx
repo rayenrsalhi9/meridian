@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 
 export function ProfilePage() {
   const { user, profile, refetchProfile } = useAuth();
@@ -30,6 +30,7 @@ export function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState({
     currentPassword: false,
     newPassword: false,
@@ -353,20 +354,36 @@ export function ProfilePage() {
           <form onSubmit={handlePasswordSubmit} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="current-password">Current Password</Label>
-              <Input
-                id="current-password"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => {
-                  setCurrentPassword(e.target.value);
-                  setPasswordError("");
-                  setPasswordSuccess(false);
-                }}
-                onBlur={() => handlePasswordBlur("currentPassword")}
-                autoComplete="current-password"
-                aria-invalid={!!displayedCurrentPasswordError}
-                aria-describedby={displayedCurrentPasswordError ? "current-password-error" : undefined}
-              />
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showPassword ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
+                    setPasswordError("");
+                    setPasswordSuccess(false);
+                  }}
+                  onBlur={() => handlePasswordBlur("currentPassword")}
+                  autoComplete="current-password"
+                  aria-invalid={!!displayedCurrentPasswordError}
+                  aria-describedby={displayedCurrentPasswordError ? "current-password-error" : undefined}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
               <AnimatePresence mode="wait">
                 {displayedCurrentPasswordError && (
                   <motion.p
@@ -386,20 +403,36 @@ export function ProfilePage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="new-password">New Password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => {
-                  setNewPassword(e.target.value);
-                  setPasswordError("");
-                  setPasswordSuccess(false);
-                }}
-                onBlur={() => handlePasswordBlur("newPassword")}
-                autoComplete="new-password"
-                aria-invalid={!!displayedNewPasswordError}
-                aria-describedby={displayedNewPasswordError ? "new-password-error" : undefined}
-              />
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setPasswordError("");
+                    setPasswordSuccess(false);
+                  }}
+                  onBlur={() => handlePasswordBlur("newPassword")}
+                  autoComplete="new-password"
+                  aria-invalid={!!displayedNewPasswordError}
+                  aria-describedby={displayedNewPasswordError ? "new-password-error" : undefined}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
               {newPassword.length > 0 && (
                 <div className="flex flex-col gap-1.5 pt-1">
                   {PASSWORD_RULES.map((rule, i) => {
@@ -439,20 +472,36 @@ export function ProfilePage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="confirm-password">Confirm New Password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  setPasswordError("");
-                  setPasswordSuccess(false);
-                }}
-                onBlur={() => handlePasswordBlur("confirmPassword")}
-                autoComplete="new-password"
-                aria-invalid={!!displayedConfirmError}
-                aria-describedby={displayedConfirmError ? "confirm-password-error" : undefined}
-              />
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setPasswordError("");
+                    setPasswordSuccess(false);
+                  }}
+                  onBlur={() => handlePasswordBlur("confirmPassword")}
+                  autoComplete="new-password"
+                  aria-invalid={!!displayedConfirmError}
+                  aria-describedby={displayedConfirmError ? "confirm-password-error" : undefined}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
               <AnimatePresence mode="wait">
                 {displayedConfirmError && (
                   <motion.p
