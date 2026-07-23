@@ -36,7 +36,7 @@ export async function ensureOtherAdminExists(
 ): Promise<AdminCheckResult | null> {
   if (userIdsPotentiallyLosingAdmin.length === 0) return null;
 
-  await tx.$queryRawUnsafe("SELECT pg_advisory_xact_lock(42)");
+  await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(42)");
 
   const rows = await tx.user.findMany({
     where: { id: { notIn: userIdsPotentiallyLosingAdmin }, isActive: true },

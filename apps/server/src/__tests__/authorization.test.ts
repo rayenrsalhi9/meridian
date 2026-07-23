@@ -1,3 +1,14 @@
+let shouldRateLimit = false;
+vi.mock("../lib/rate-limiter.js", () => ({
+  rateLimiter: vi.fn(() => (req: any, res: any) => {
+    if (shouldRateLimit) {
+      res.status(429).json({ error: "Too many requests" });
+      return false;
+    }
+    return true;
+  }),
+}));
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 
@@ -94,10 +105,17 @@ describe("authorization.service", () => {
     await resolveClaims(["role-a"]);
     expect(prisma.roleClaim.findMany).toHaveBeenCalledTimes(2);
   });
+
+  it("returns empty Set for empty roleIds array", async () => {
+    const claims = await resolveClaims([]);
+    expect(claims.size).toBe(0);
+    expect(prisma.roleClaim.findMany).not.toHaveBeenCalled();
+  });
 });
 
 describe("password endpoints", () => {
   beforeEach(() => {
+    shouldRateLimit = false;
     resetForTests();
     vi.clearAllMocks();
     // Default mock so requireAuth (which now calls prisma.user.findUnique) passes
@@ -164,6 +182,19 @@ describe("password endpoints", () => {
 
       expect(res.status).toBe(400);
       expect(res.body.error).toBe("Validation failed");
+    });
+
+    it("returns 429 when rate limited", async () => {
+      shouldRateLimit = true;
+      const token = signAccessToken("user-123", ["some-role"]);
+
+      const res = await request(app)
+        .post("/api/v1/users/user-123/change-password")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ currentPassword: "oldpass", newPassword: "newpassword123" });
+
+      expect(res.status).toBe(429);
+      expect(res.body.error).toBe("Too many requests");
     });
   });
 
