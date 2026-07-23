@@ -216,7 +216,15 @@ export function AdminUsersPage() {
     if (!editingUserId) {
       return nameOk && emailOk && passwordAllPassed && passwordsMatch && rolesOk
     }
-    return nameOk && emailOk && rolesOk
+    const user = users.find((u) => u.id === editingUserId)
+    if (!user) return false
+    const changed =
+      formFirstName !== user.firstName ||
+      formLastName !== user.lastName ||
+      formEmail !== user.email ||
+      selectedRoleIds.size !== user.roles.length ||
+      !user.roles.every((r) => selectedRoleIds.has(r.id))
+    return nameOk && emailOk && rolesOk && changed
   }, [
     formFirstName,
     formLastName,
@@ -225,6 +233,7 @@ export function AdminUsersPage() {
     passwordsMatch,
     selectedRoleIds,
     editingUserId,
+    users,
   ])
 
   function openCreateSheet() {

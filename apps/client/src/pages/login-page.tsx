@@ -34,7 +34,7 @@ export default function LoginPage() {
   const [scope, animate] = useAnimate();
 
   const allErrors = useMemo(() => validateAll(email, password), [email, password]);
-  const isSubmitDisabled = isPending;
+  const isSubmitDisabled = isPending || Object.keys(allErrors).length > 0;
 
   const handleBlur = (field: "email" | "password") => {
     setTouched((prev) => ({ ...prev, [field]: true }));

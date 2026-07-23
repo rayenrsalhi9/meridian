@@ -82,8 +82,11 @@ export function ProfilePage() {
   const profileFormValid = useMemo(() => {
     const nameFilled = firstName.trim().length > 0 && lastName.trim().length > 0;
     const noErrors = Object.keys(profileErrors).length === 0;
-    return nameFilled && noErrors;
-  }, [firstName, lastName, profileErrors]);
+    const changed =
+      firstName !== (profile?.firstName ?? "") ||
+      lastName !== (profile?.lastName ?? "");
+    return nameFilled && noErrors && changed;
+  }, [firstName, lastName, profileErrors, profile]);
 
   const passwordFormValid = useMemo(() => {
     if (!currentPassword || !newPassword || !confirmPassword) return false;

@@ -192,6 +192,20 @@ export function AdminRolesPage() {
     setSaveError(null)
   }
 
+  const roleFormValid = useMemo(() => {
+    const nameOk = roleName.trim().length > 0
+    const claimsOk = selectedClaimIds.size > 0
+    if (!editingRoleId) return nameOk && claimsOk
+    const role = roles.find((r) => r.id === editingRoleId)
+    if (!role) return false
+    const changed =
+      roleName !== role.name ||
+      roleDescription !== (role.description ?? "") ||
+      selectedClaimIds.size !== role.claims.length ||
+      !role.claims.every((key) => selectedClaimIds.has(claimKeyToId[key]))
+    return nameOk && claimsOk && changed
+  }, [roleName, roleDescription, selectedClaimIds, editingRoleId, roles, claimKeyToId])
+
   function toggleClaim(claimId: string) {
     const hadClaim = selectedClaimIds.has(claimId)
     if (hadClaim) {
@@ -611,7 +625,7 @@ export function AdminRolesPage() {
               <Button variant="outline" onClick={closeSheet}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={saving}>
+              <Button onClick={handleSave} disabled={saving || !roleFormValid}>
                 {saving ? (
                   <>
                     <Spinner />
