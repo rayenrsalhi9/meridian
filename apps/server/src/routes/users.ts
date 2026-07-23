@@ -94,7 +94,9 @@ router.put(
           ? 404
           : result.error === "Email already in use"
             ? 409
-            : 400;
+            : result.error === "User is already deactivated"
+              ? 409
+              : 400;
       res.status(status).json(result);
       return;
     }
