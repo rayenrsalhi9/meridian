@@ -57,7 +57,13 @@ router.post("/login", async (req, res) => {
   });
 });
 
+const refreshLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "production" ? 30 : 200,
+});
+
 router.post("/refresh", async (req, res) => {
+  if (!refreshLimiter(req, res)) return;
   const cookies = parseCookies(req.headers.cookie);
   const tokenValue = cookies[REFRESH_COOKIE];
   if (!tokenValue) {
