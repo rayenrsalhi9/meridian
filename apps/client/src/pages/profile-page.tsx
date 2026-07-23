@@ -30,7 +30,9 @@ export function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState({
     currentPassword: false,
     newPassword: false,
@@ -357,7 +359,7 @@ export function ProfilePage() {
               <div className="relative">
                 <Input
                   id="current-password"
-                  type={showPassword ? "text" : "password"}
+                  type={showCurrent ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => {
                     setCurrentPassword(e.target.value);
@@ -370,18 +372,20 @@ export function ProfilePage() {
                   aria-describedby={displayedCurrentPasswordError ? "current-password-error" : undefined}
                   className="pr-10"
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                  aria-label={showCurrent ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? (
+                  {showCurrent ? (
                     <EyeOffIcon className="size-4" />
                   ) : (
                     <EyeIcon className="size-4" />
                   )}
-                </button>
+                </Button>
               </div>
               <AnimatePresence mode="wait">
                 {displayedCurrentPasswordError && (
@@ -405,7 +409,7 @@ export function ProfilePage() {
               <div className="relative">
                 <Input
                   id="new-password"
-                  type={showPassword ? "text" : "password"}
+                  type={showNew ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => {
                     setNewPassword(e.target.value);
@@ -418,18 +422,20 @@ export function ProfilePage() {
                   aria-describedby={displayedNewPasswordError ? "new-password-error" : undefined}
                   className="pr-10"
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                  aria-label={showNew ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? (
+                  {showNew ? (
                     <EyeOffIcon className="size-4" />
                   ) : (
                     <EyeIcon className="size-4" />
                   )}
-                </button>
+                </Button>
               </div>
               {newPassword.length > 0 && (
                 <div className="flex flex-col gap-1.5 pt-1">
@@ -473,7 +479,7 @@ export function ProfilePage() {
               <div className="relative">
                 <Input
                   id="confirm-password"
-                  type={showPassword ? "text" : "password"}
+                  type={showConfirm ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
@@ -486,18 +492,20 @@ export function ProfilePage() {
                   aria-describedby={displayedConfirmError ? "confirm-password-error" : undefined}
                   className="pr-10"
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                  aria-label={showConfirm ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? (
+                  {showConfirm ? (
                     <EyeOffIcon className="size-4" />
                   ) : (
                     <EyeIcon className="size-4" />
                   )}
-                </button>
+                </Button>
               </div>
               <AnimatePresence mode="wait">
                 {displayedConfirmError && (

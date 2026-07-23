@@ -1,12 +1,32 @@
 import { execSync } from "node:child_process";
 
 const TEST_DB_MARKER = "meridian_test";
+const ALLOWED_DBS = new Set(["meridian_test"]);
+const ALLOWED_HOSTS = new Set(["localhost", "127.0.0.1"]);
 
 export async function setup(): Promise<void> {
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl || !dbUrl.includes(TEST_DB_MARKER)) {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) {
     throw new Error(
-      `DATABASE_URL must contain "${TEST_DB_MARKER}" — refusing to reset a non-test database. Got: ${dbUrl ?? "(unset)"}`,
+      `DATABASE_URL must contain "${TEST_DB_MARKER}" — refusing to reset a non-test database. Got: (unset)`,
+    );
+  }
+
+  let dbName: string;
+  let host: string;
+  try {
+    const url = new URL(raw);
+    dbName = url.pathname.replace(/^\//, "");
+    host = url.hostname;
+  } catch {
+    throw new Error(
+      `DATABASE_URL must contain "${TEST_DB_MARKER}" — refusing to reset a non-test database. Got: (malformed URL)`,
+    );
+  }
+
+  if (!ALLOWED_DBS.has(dbName) || !ALLOWED_HOSTS.has(host)) {
+    throw new Error(
+      `DATABASE_URL must contain "${TEST_DB_MARKER}" — refusing to reset a non-test database.`,
     );
   }
 
