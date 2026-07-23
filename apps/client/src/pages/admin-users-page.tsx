@@ -220,9 +220,9 @@ export function AdminUsersPage() {
     const user = users.find((u) => u.id === editingUserId)
     if (!user) return false
     const changed =
-      formFirstName !== user.firstName ||
-      formLastName !== user.lastName ||
-      formEmail !== user.email ||
+      formFirstName.trim() !== user.firstName ||
+      formLastName.trim() !== user.lastName ||
+      formEmail.trim() !== user.email ||
       selectedRoleIds.size !== user.roles.length ||
       !user.roles.every((r) => selectedRoleIds.has(r.id))
     return nameOk && emailOk && rolesOk && changed
@@ -396,6 +396,7 @@ export function AdminUsersPage() {
   function confirmResetPassword(user: UserItem) {
     setResettingUser(user)
     setResetNewPassword("")
+    setShowResetPassword(false)
     setResetError(null)
     setResetSuccess(null)
   }
@@ -868,7 +869,6 @@ export function AdminUsersPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       aria-label={showPassword ? "Hide password" : "Show password"}
-                      tabIndex={-1}
                     >
                       {showPassword ? (
                         <EyeOffIcon className="size-4" />
@@ -1060,6 +1060,7 @@ export function AdminUsersPage() {
         onOpenChange={(open) => {
           if (!open) {
             setResettingUser(null)
+            setShowResetPassword(false)
             setResetSuccess(null)
           }
         }}
@@ -1096,7 +1097,6 @@ export function AdminUsersPage() {
                   onClick={() => setShowResetPassword(!showResetPassword)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   aria-label={showResetPassword ? "Hide password" : "Show password"}
-                  tabIndex={-1}
                 >
                   {showResetPassword ? (
                     <EyeOffIcon className="size-4" />

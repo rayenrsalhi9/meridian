@@ -199,8 +199,8 @@ export function AdminRolesPage() {
     const role = roles.find((r) => r.id === editingRoleId)
     if (!role) return false
     const changed =
-      roleName !== role.name ||
-      roleDescription !== (role.description ?? "") ||
+      roleName.trim() !== role.name ||
+      roleDescription.trim() !== (role.description ?? "") ||
       selectedClaimIds.size !== role.claims.length ||
       !role.claims.every((key) => selectedClaimIds.has(claimKeyToId[key]))
     return nameOk && claimsOk && changed

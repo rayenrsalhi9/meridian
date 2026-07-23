@@ -7,7 +7,7 @@ export const AVATAR_COLORS = [
   "bg-pink-600",
   "bg-indigo-600",
   "bg-teal-700",
-  "bg-orange-600",
+  "bg-orange-700",
   "bg-cyan-700",
 ];
 

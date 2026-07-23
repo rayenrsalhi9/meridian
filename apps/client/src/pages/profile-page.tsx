@@ -84,8 +84,8 @@ export function ProfilePage() {
     const nameFilled = firstName.trim().length > 0 && lastName.trim().length > 0;
     const noErrors = Object.keys(profileErrors).length === 0;
     const changed =
-      firstName !== (profile?.firstName ?? "") ||
-      lastName !== (profile?.lastName ?? "");
+      firstName.trim() !== (profile?.firstName ?? "") ||
+      lastName.trim() !== (profile?.lastName ?? "");
     return nameFilled && noErrors && changed;
   }, [firstName, lastName, profileErrors, profile]);
 
@@ -375,7 +375,6 @@ export function ProfilePage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  tabIndex={-1}
                 >
                   {showPassword ? (
                     <EyeOffIcon className="size-4" />
@@ -424,7 +423,6 @@ export function ProfilePage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  tabIndex={-1}
                 >
                   {showPassword ? (
                     <EyeOffIcon className="size-4" />
@@ -493,7 +491,6 @@ export function ProfilePage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  tabIndex={-1}
                 >
                   {showPassword ? (
                     <EyeOffIcon className="size-4" />
