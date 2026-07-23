@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router"
 import { EditIcon, PlusIcon, ShieldIcon, Trash2Icon } from "lucide-react"
 import {
   CLAIM_DEFINITIONS,
@@ -96,8 +95,6 @@ function groupClaimsByCategory(
 }
 
 export function AdminRolesPage() {
-  const navigate = useNavigate()
-
   const [roles, setRoles] = useState<RoleListItem[]>([])
   const [claims, setClaims] = useState<ClaimItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,11 +123,7 @@ export function AdminRolesPage() {
         apiClient("/claims"),
       ])
       if (!rolesRes.ok) {
-        if (rolesRes.status === 403) {
-          navigate("/login", { replace: true })
-          return
-        }
-        throw new Error(`Failed to fetch roles: ${rolesRes.statusText}`)
+        throw new Error(rolesRes.status === 403 ? "Forbidden: Insufficient permissions" : `Failed to fetch roles: ${rolesRes.statusText}`)
       }
       if (!claimsRes.ok) {
         throw new Error(`Failed to fetch claims: ${claimsRes.statusText}`)
@@ -144,7 +137,7 @@ export function AdminRolesPage() {
     } finally {
       setLoading(false)
     }
-  }, [navigate])
+  }, [])
 
   useEffect(() => {
     fetchData()

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router"
 import {
   EditIcon,
   EyeIcon,
@@ -92,8 +91,6 @@ interface RoleItem {
 }
 
 export function AdminUsersPage() {
-  const navigate = useNavigate()
-
   const [users, setUsers] = useState<UserItem[]>([])
   const [roles, setRoles] = useState<RoleItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -141,25 +138,21 @@ export function AdminUsersPage() {
         apiClient("/roles"),
       ])
       if (!usersRes.ok) {
-        if (usersRes.status === 403) {
-          navigate("/login", { replace: true })
-          return
-        }
-        throw new Error(`Failed to fetch users: ${usersRes.statusText}`)
+        throw new Error(usersRes.status === 403 ? "Forbidden: Insufficient permissions" : `Failed to fetch users: ${usersRes.statusText}`)
       }
       if (!rolesRes.ok) {
-        throw new Error(`Failed to fetch roles: ${rolesRes.statusText}`)
+        throw new Error(rolesRes.status === 403 ? "Forbidden: Insufficient permissions" : `Failed to fetch roles: ${rolesRes.statusText}`)
       }
-      const usersData: UserItem[] = await usersRes.json()
       const rolesData: RoleItem[] = await rolesRes.json()
-      setUsers(usersData)
       setRoles(rolesData)
+      const usersData: UserItem[] = await usersRes.json()
+      setUsers(usersData)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
       setLoading(false)
     }
-  }, [navigate])
+  }, [])
 
   useEffect(() => {
     fetchData()
