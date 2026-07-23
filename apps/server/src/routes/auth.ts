@@ -57,6 +57,8 @@ router.post("/login", async (req, res) => {
   });
 });
 
+// ponytail: in-memory store, single-process only.
+// Replace with external store (Redis) for horizontally scaled deployments.
 const refreshLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === "production" ? 30 : 200,

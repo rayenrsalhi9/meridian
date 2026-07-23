@@ -39,7 +39,7 @@ export async function ensureOtherAdminExists(
   // ponytail: global lock, serializes all last-admin checks.
   // Use a lock key derived from the operation context if concurrent
   // deactivations of different users become a bottleneck.
-  await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(42)");
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(42)`;
 
   const rows = await tx.user.findMany({
     where: { id: { notIn: userIdsPotentiallyLosingAdmin }, isActive: true },

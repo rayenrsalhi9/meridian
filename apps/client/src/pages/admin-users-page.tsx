@@ -202,6 +202,16 @@ export function AdminUsersPage() {
   const passwordAllPassed = passwordRulesPassed.every(Boolean)
   const passwordsMatch = formPassword === formPasswordConfirm
 
+  const resetPasswordRulesPassed = useMemo(() => {
+    const results: boolean[] = []
+    for (const rule of PASSWORD_RULES) {
+      results.push(rule.test(resetNewPassword))
+    }
+    return results
+  }, [resetNewPassword])
+
+  const resetPasswordAllPassed = resetPasswordRulesPassed.every(Boolean)
+
   const formValid = useMemo(() => {
     const nameOk =
       formFirstName.trim().length > 0 && formLastName.trim().length > 0
@@ -396,8 +406,9 @@ export function AdminUsersPage() {
 
   async function handleResetPassword() {
     if (!resettingUser) return
-    if (!resetNewPassword || resetNewPassword.length < 8) {
-      setResetError("Password must be at least 8 characters")
+    if (!resetPasswordAllPassed) {
+      const failed = PASSWORD_RULES.filter((_, i) => !resetPasswordRulesPassed[i]).map((r) => r.label.toLowerCase())
+      setResetError(`Password must meet: ${failed.join(", ")}`)
       return
     }
     setResetting(true)
@@ -1080,7 +1091,7 @@ export function AdminUsersPage() {
                   type={showResetPassword ? "text" : "password"}
                   value={resetNewPassword}
                   onChange={(e) => setResetNewPassword(e.target.value)}
-                  placeholder="Min. 8 characters…"
+                  placeholder="Min. 8 characters, upper, lower, number, special…"
                   autoComplete="off"
                   name="reset-password"
                   className="pr-10"
@@ -1098,6 +1109,26 @@ export function AdminUsersPage() {
                   )}
                 </button>
               </div>
+              {resetNewPassword.length > 0 && (
+                <div className="flex flex-col gap-1.5 pt-1">
+                  {PASSWORD_RULES.map((rule, i) => {
+                    const passed = resetPasswordRulesPassed[i]
+                    return (
+                      <div
+                        key={rule.label}
+                        className={`flex items-center gap-1.5 text-xs ${passed ? "text-green-600" : "text-muted-foreground"}`}
+                      >
+                        {passed ? (
+                          <CheckIcon className="size-3 shrink-0" />
+                        ) : (
+                          <span className="size-3 shrink-0 rounded-full border border-muted-foreground" />
+                        )}
+                        {rule.label}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
           {resetError && (
@@ -1111,7 +1142,7 @@ export function AdminUsersPage() {
             </AlertDialogCancel>
             {!resetSuccess && (
               <AlertDialogAction
-                disabled={resetting || resetNewPassword.length < 8}
+                disabled={resetting || !resetPasswordAllPassed}
                 onClick={handleResetPassword}
               >
                 {resetting ? (
