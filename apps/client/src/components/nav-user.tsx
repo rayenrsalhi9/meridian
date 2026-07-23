@@ -20,7 +20,7 @@ export function NavUser() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Avatar className="size-8" />} nativeButton={false}>
+      <DropdownMenuTrigger render={<Avatar className="size-8" />} nativeButton={false} aria-label="Open user menu">
         <AvatarFallback>
           <UserAvatar profile={profile} userId={user?.id} size="sm" />
         </AvatarFallback>
