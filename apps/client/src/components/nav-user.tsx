@@ -47,7 +47,7 @@ export function NavUser() {
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => navigate("/profile")}>
             <UserRoundIcon />
-            See Profile
+            Profile
           </DropdownMenuItem>
           <DropdownMenuItem onClick={logout}>
             <LogOutIcon />
