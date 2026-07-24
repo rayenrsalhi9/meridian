@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 
 export function ProfilePage() {
   const { user, profile, refetchProfile } = useAuth();
@@ -30,6 +30,9 @@ export function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState({
     currentPassword: false,
     newPassword: false,
@@ -82,8 +85,11 @@ export function ProfilePage() {
   const profileFormValid = useMemo(() => {
     const nameFilled = firstName.trim().length > 0 && lastName.trim().length > 0;
     const noErrors = Object.keys(profileErrors).length === 0;
-    return nameFilled && noErrors;
-  }, [firstName, lastName, profileErrors]);
+    const changed =
+      firstName.trim() !== (profile?.firstName ?? "").trim() ||
+      lastName.trim() !== (profile?.lastName ?? "").trim();
+    return nameFilled && noErrors && changed;
+  }, [firstName, lastName, profileErrors, profile]);
 
   const passwordFormValid = useMemo(() => {
     if (!currentPassword || !newPassword || !confirmPassword) return false;
@@ -170,6 +176,9 @@ export function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setShowCurrent(false);
+      setShowNew(false);
+      setShowConfirm(false);
       setPasswordTouched({
         currentPassword: false,
         newPassword: false,
@@ -350,20 +359,37 @@ export function ProfilePage() {
           <form onSubmit={handlePasswordSubmit} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="current-password">Current Password</Label>
-              <Input
-                id="current-password"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => {
-                  setCurrentPassword(e.target.value);
-                  setPasswordError("");
-                  setPasswordSuccess(false);
-                }}
-                onBlur={() => handlePasswordBlur("currentPassword")}
-                autoComplete="current-password"
-                aria-invalid={!!displayedCurrentPasswordError}
-                aria-describedby={displayedCurrentPasswordError ? "current-password-error" : undefined}
-              />
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
+                    setPasswordError("");
+                    setPasswordSuccess(false);
+                  }}
+                  onBlur={() => handlePasswordBlur("currentPassword")}
+                  autoComplete="current-password"
+                  aria-invalid={!!displayedCurrentPasswordError}
+                  aria-describedby={displayedCurrentPasswordError ? "current-password-error" : undefined}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                  aria-label={showCurrent ? "Hide current password" : "Show current password"}
+                >
+                  {showCurrent ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </Button>
+              </div>
               <AnimatePresence mode="wait">
                 {displayedCurrentPasswordError && (
                   <motion.p
@@ -383,20 +409,37 @@ export function ProfilePage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="new-password">New Password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => {
-                  setNewPassword(e.target.value);
-                  setPasswordError("");
-                  setPasswordSuccess(false);
-                }}
-                onBlur={() => handlePasswordBlur("newPassword")}
-                autoComplete="new-password"
-                aria-invalid={!!displayedNewPasswordError}
-                aria-describedby={displayedNewPasswordError ? "new-password-error" : undefined}
-              />
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNew ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setPasswordError("");
+                    setPasswordSuccess(false);
+                  }}
+                  onBlur={() => handlePasswordBlur("newPassword")}
+                  autoComplete="new-password"
+                  aria-invalid={!!displayedNewPasswordError}
+                  aria-describedby={displayedNewPasswordError ? "new-password-error" : undefined}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                  aria-label={showNew ? "Hide new password" : "Show new password"}
+                >
+                  {showNew ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </Button>
+              </div>
               {newPassword.length > 0 && (
                 <div className="flex flex-col gap-1.5 pt-1">
                   {PASSWORD_RULES.map((rule, i) => {
@@ -436,20 +479,37 @@ export function ProfilePage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="confirm-password">Confirm New Password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  setPasswordError("");
-                  setPasswordSuccess(false);
-                }}
-                onBlur={() => handlePasswordBlur("confirmPassword")}
-                autoComplete="new-password"
-                aria-invalid={!!displayedConfirmError}
-                aria-describedby={displayedConfirmError ? "confirm-password-error" : undefined}
-              />
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setPasswordError("");
+                    setPasswordSuccess(false);
+                  }}
+                  onBlur={() => handlePasswordBlur("confirmPassword")}
+                  autoComplete="new-password"
+                  aria-invalid={!!displayedConfirmError}
+                  aria-describedby={displayedConfirmError ? "confirm-password-error" : undefined}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                  aria-label={showConfirm ? "Hide confirmation password" : "Show confirmation password"}
+                >
+                  {showConfirm ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </Button>
+              </div>
               <AnimatePresence mode="wait">
                 {displayedConfirmError && (
                   <motion.p

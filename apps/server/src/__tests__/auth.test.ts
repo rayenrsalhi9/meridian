@@ -1,3 +1,14 @@
+let shouldRateLimit = false;
+vi.mock("../lib/rate-limiter.js", () => ({
+  rateLimiter: vi.fn(() => (req: any, res: any) => {
+    if (shouldRateLimit) {
+      res.status(429).json({ error: "Too many requests" });
+      return false;
+    }
+    return true;
+  }),
+}));
+
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import request from "supertest";
 import app from "../app.js";
@@ -92,6 +103,24 @@ describe("POST /api/v1/auth/login", () => {
     const res = await request(app)
       .post("/api/v1/auth/login")
       .send({ email: TEST_EMAIL });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Validation failed");
+  });
+
+  it("returns 400 for empty email", async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: "", password: "somepass" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Validation failed");
+  });
+
+  it("returns 400 for empty password", async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: "test@test.com", password: "" });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("Validation failed");
@@ -534,5 +563,131 @@ describe("isActive enforcement", () => {
     });
     expect(revoked).toBeDefined();
     expect(revoked!.revokedAt).not.toBeNull();
+  });
+});
+
+describe("rate limiting", () => {
+  afterEach(() => {
+    shouldRateLimit = false;
+  });
+
+  it("blocks login requests when rate limited", async () => {
+    shouldRateLimit = true;
+    const res = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
+
+    expect(res.status).toBe(429);
+    expect(res.body.error).toBe("Too many requests");
+    expect(res.body.accessToken).toBeUndefined();
+  });
+});
+
+describe("admin CRUD integration", () => {
+  let adminToken: string;
+  let testClaimId: string;
+  let createdRoleId: string;
+  const testUserEmail = "crud-test@meridian.local";
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
+    adminToken = res.body.accessToken;
+  });
+
+  afterAll(async () => {
+    await prisma.refreshToken
+      .deleteMany({ where: { user: { email: testUserEmail } } })
+      .catch(() => {});
+    await prisma.user
+      .deleteMany({ where: { email: testUserEmail } })
+      .catch(() => {});
+    if (createdRoleId) {
+      await prisma.roleClaim
+        .deleteMany({ where: { roleId: createdRoleId } })
+        .catch(() => {});
+      await prisma.userRole
+        .deleteMany({ where: { roleId: createdRoleId } })
+        .catch(() => {});
+      await prisma.role
+        .delete({ where: { id: createdRoleId } })
+        .catch(() => {});
+    }
+  });
+
+  it("lists available claims", async () => {
+    const res = await request(app)
+      .get("/api/v1/claims")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThan(0);
+    testClaimId = res.body[0].id;
+  });
+
+  it("creates a role with a claim", async () => {
+    expect(testClaimId).toBeDefined();
+    const res = await request(app)
+      .post("/api/v1/roles")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ name: "CRUD-Test-Role", claimIds: [testClaimId] });
+
+    expect(res.status).toBe(201);
+    expect(res.body.name).toBe("CRUD-Test-Role");
+    expect(res.body.claims).toHaveLength(1);
+    createdRoleId = res.body.id;
+  });
+
+  it("lists roles including the new one", async () => {
+    const res = await request(app)
+      .get("/api/v1/roles")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    const names = res.body.map((r: any) => r.name);
+    expect(names).toContain("CRUD-Test-Role");
+  });
+
+  it("creates a user with the new role", async () => {
+    expect(createdRoleId).toBeDefined();
+    const res = await request(app)
+      .post("/api/v1/users")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        email: testUserEmail,
+        firstName: "CRUD",
+        lastName: "Test",
+        password: "password123",
+        roleIds: [createdRoleId],
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.email).toBe(testUserEmail);
+    expect(res.body.roles).toHaveLength(1);
+    expect(res.body.roles[0].id).toBe(createdRoleId);
+  });
+
+  it("lists users including the new one", async () => {
+    const res = await request(app)
+      .get("/api/v1/users")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    const emails = res.body.map((u: any) => u.email);
+    expect(emails).toContain(testUserEmail);
+  });
+
+  it("deactivates the created user", async () => {
+    const usersRes = await request(app)
+      .get("/api/v1/users?includeInactive=true")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    const target = usersRes.body.find((u: any) => u.email === testUserEmail);
+    expect(target).toBeDefined();
+
+    const res = await request(app)
+      .delete(`/api/v1/users/${target!.id}`)
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(204);
   });
 });

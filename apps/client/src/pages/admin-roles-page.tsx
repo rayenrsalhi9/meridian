@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router"
 import { EditIcon, PlusIcon, ShieldIcon, Trash2Icon } from "lucide-react"
 import {
   CLAIM_DEFINITIONS,
@@ -96,8 +95,6 @@ function groupClaimsByCategory(
 }
 
 export function AdminRolesPage() {
-  const navigate = useNavigate()
-
   const [roles, setRoles] = useState<RoleListItem[]>([])
   const [claims, setClaims] = useState<ClaimItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,11 +123,7 @@ export function AdminRolesPage() {
         apiClient("/claims"),
       ])
       if (!rolesRes.ok) {
-        if (rolesRes.status === 403) {
-          navigate("/login", { replace: true })
-          return
-        }
-        throw new Error(`Failed to fetch roles: ${rolesRes.statusText}`)
+        throw new Error(rolesRes.status === 403 ? "Forbidden: Insufficient permissions" : `Failed to fetch roles: ${rolesRes.statusText}`)
       }
       if (!claimsRes.ok) {
         throw new Error(`Failed to fetch claims: ${claimsRes.statusText}`)
@@ -144,7 +137,7 @@ export function AdminRolesPage() {
     } finally {
       setLoading(false)
     }
-  }, [navigate])
+  }, [])
 
   useEffect(() => {
     fetchData()
@@ -191,6 +184,20 @@ export function AdminRolesPage() {
     setEditingRoleId(null)
     setSaveError(null)
   }
+
+  const roleFormValid = useMemo(() => {
+    const nameOk = roleName.trim().length > 0
+    const claimsOk = selectedClaimIds.size > 0
+    if (!editingRoleId) return nameOk && claimsOk
+    const role = roles.find((r) => r.id === editingRoleId)
+    if (!role) return false
+    const changed =
+      roleName.trim() !== role.name ||
+      roleDescription.trim() !== (role.description ?? "") ||
+      selectedClaimIds.size !== role.claims.length ||
+      !role.claims.every((key) => selectedClaimIds.has(claimKeyToId[key]))
+    return nameOk && claimsOk && changed
+  }, [roleName, roleDescription, selectedClaimIds, editingRoleId, roles, claimKeyToId])
 
   function toggleClaim(claimId: string) {
     const hadClaim = selectedClaimIds.has(claimId)
@@ -611,7 +618,7 @@ export function AdminRolesPage() {
               <Button variant="outline" onClick={closeSheet}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={saving}>
+              <Button onClick={handleSave} disabled={saving || !roleFormValid}>
                 {saving ? (
                   <>
                     <Spinner />

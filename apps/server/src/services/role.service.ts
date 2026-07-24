@@ -1,6 +1,8 @@
+import { ADMIN_CLAIM_KEYS_SET } from "shared";
 import { prisma } from "../db.js";
 import { invalidateRole, resolveClaimsInTx } from "./authorization.service.js";
-import { ADMIN_CLAIMS, ensureOtherAdminExists } from "./user.service.js";
+import { ensureOtherAdminExists } from "./user.service.js";
+const ADMIN_CLAIMS = ADMIN_CLAIM_KEYS_SET;
 
 export async function listRoles() {
   const roles = await prisma.role.findMany({

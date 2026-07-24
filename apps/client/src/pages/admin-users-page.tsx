@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router"
 import {
   EditIcon,
   EyeIcon,
@@ -92,8 +91,6 @@ interface RoleItem {
 }
 
 export function AdminUsersPage() {
-  const navigate = useNavigate()
-
   const [users, setUsers] = useState<UserItem[]>([])
   const [roles, setRoles] = useState<RoleItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -120,6 +117,7 @@ export function AdminUsersPage() {
 
   const [resettingUser, setResettingUser] = useState<UserItem | null>(null)
   const [resetNewPassword, setResetNewPassword] = useState("")
+  const [showResetPassword, setShowResetPassword] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetSuccess, setResetSuccess] = useState<string | null>(null)
@@ -140,25 +138,21 @@ export function AdminUsersPage() {
         apiClient("/roles"),
       ])
       if (!usersRes.ok) {
-        if (usersRes.status === 403) {
-          navigate("/login", { replace: true })
-          return
-        }
-        throw new Error(`Failed to fetch users: ${usersRes.statusText}`)
+        throw new Error(usersRes.status === 403 ? "Forbidden: Insufficient permissions" : `Failed to fetch users: ${usersRes.statusText}`)
       }
       if (!rolesRes.ok) {
-        throw new Error(`Failed to fetch roles: ${rolesRes.statusText}`)
+        throw new Error(rolesRes.status === 403 ? "Forbidden: Insufficient permissions" : `Failed to fetch roles: ${rolesRes.statusText}`)
       }
-      const usersData: UserItem[] = await usersRes.json()
       const rolesData: RoleItem[] = await rolesRes.json()
-      setUsers(usersData)
       setRoles(rolesData)
+      const usersData: UserItem[] = await usersRes.json()
+      setUsers(usersData)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
       setLoading(false)
     }
-  }, [navigate])
+  }, [])
 
   useEffect(() => {
     fetchData()
@@ -208,6 +202,16 @@ export function AdminUsersPage() {
   const passwordAllPassed = passwordRulesPassed.every(Boolean)
   const passwordsMatch = formPassword === formPasswordConfirm
 
+  const resetPasswordRulesPassed = useMemo(() => {
+    const results: boolean[] = []
+    for (const rule of PASSWORD_RULES) {
+      results.push(rule.test(resetNewPassword))
+    }
+    return results
+  }, [resetNewPassword])
+
+  const resetPasswordAllPassed = resetPasswordRulesPassed.every(Boolean)
+
   const formValid = useMemo(() => {
     const nameOk =
       formFirstName.trim().length > 0 && formLastName.trim().length > 0
@@ -216,7 +220,15 @@ export function AdminUsersPage() {
     if (!editingUserId) {
       return nameOk && emailOk && passwordAllPassed && passwordsMatch && rolesOk
     }
-    return nameOk && emailOk && rolesOk
+    const user = users.find((u) => u.id === editingUserId)
+    if (!user) return false
+    const changed =
+      formFirstName.trim() !== user.firstName ||
+      formLastName.trim() !== user.lastName ||
+      formEmail.trim() !== user.email ||
+      selectedRoleIds.size !== user.roles.length ||
+      !user.roles.every((r) => selectedRoleIds.has(r.id))
+    return nameOk && emailOk && rolesOk && changed
   }, [
     formFirstName,
     formLastName,
@@ -225,6 +237,7 @@ export function AdminUsersPage() {
     passwordsMatch,
     selectedRoleIds,
     editingUserId,
+    users,
   ])
 
   function openCreateSheet() {
@@ -386,14 +399,16 @@ export function AdminUsersPage() {
   function confirmResetPassword(user: UserItem) {
     setResettingUser(user)
     setResetNewPassword("")
+    setShowResetPassword(false)
     setResetError(null)
     setResetSuccess(null)
   }
 
   async function handleResetPassword() {
     if (!resettingUser) return
-    if (!resetNewPassword || resetNewPassword.length < 8) {
-      setResetError("Password must be at least 8 characters")
+    if (!resetPasswordAllPassed) {
+      const failed = PASSWORD_RULES.filter((_, i) => !resetPasswordRulesPassed[i]).map((r) => r.label.toLowerCase())
+      setResetError(`Password must meet: ${failed.join(", ")}`)
       return
     }
     setResetting(true)
@@ -858,7 +873,6 @@ export function AdminUsersPage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       aria-label={showPassword ? "Hide password" : "Show password"}
-                      tabIndex={-1}
                     >
                       {showPassword ? (
                         <EyeOffIcon className="size-4" />
@@ -1050,6 +1064,7 @@ export function AdminUsersPage() {
         onOpenChange={(open) => {
           if (!open) {
             setResettingUser(null)
+            setShowResetPassword(false)
             setResetSuccess(null)
           }
         }}
@@ -1070,15 +1085,50 @@ export function AdminUsersPage() {
           ) : (
             <div className="flex flex-col gap-2">
               <Label htmlFor="reset-password">New password</Label>
-              <Input
-                id="reset-password"
-                type="password"
-                value={resetNewPassword}
-                onChange={(e) => setResetNewPassword(e.target.value)}
-                placeholder="Min. 8 characters…"
-                autoComplete="off"
-                name="reset-password"
-              />
+              <div className="relative">
+                <Input
+                  id="reset-password"
+                  type={showResetPassword ? "text" : "password"}
+                  value={resetNewPassword}
+                  onChange={(e) => setResetNewPassword(e.target.value)}
+                  placeholder="Min. 8 characters, upper, lower, number, special…"
+                  autoComplete="off"
+                  name="reset-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowResetPassword(!showResetPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showResetPassword ? "Hide password" : "Show password"}
+                >
+                  {showResetPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
+              {resetNewPassword.length > 0 && (
+                <div className="flex flex-col gap-1.5 pt-1">
+                  {PASSWORD_RULES.map((rule, i) => {
+                    const passed = resetPasswordRulesPassed[i]
+                    return (
+                      <div
+                        key={rule.label}
+                        className={`flex items-center gap-1.5 text-xs ${passed ? "text-green-600" : "text-muted-foreground"}`}
+                      >
+                        {passed ? (
+                          <CheckIcon className="size-3 shrink-0" />
+                        ) : (
+                          <span className="size-3 shrink-0 rounded-full border border-muted-foreground" />
+                        )}
+                        {rule.label}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
           {resetError && (
@@ -1092,7 +1142,7 @@ export function AdminUsersPage() {
             </AlertDialogCancel>
             {!resetSuccess && (
               <AlertDialogAction
-                disabled={resetting || resetNewPassword.length < 8}
+                disabled={resetting || !resetPasswordAllPassed}
                 onClick={handleResetPassword}
               >
                 {resetting ? (

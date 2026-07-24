@@ -10,12 +10,18 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
+function base64urlDecode(s: string): string {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  return atob(s);
+}
+
 export function decodeJwtPayload(
   token: string,
 ): { sub: string; roles: string[] } | null {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return { sub: payload.sub, roles: payload.roles };
+    const payload = JSON.parse(base64urlDecode(token.split(".")[1]));
+    return { sub: payload.sub, roles: payload.roles ?? [] };
   } catch {
     return null;
   }

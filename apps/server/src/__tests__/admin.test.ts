@@ -100,7 +100,7 @@ function mockTransactionCallback(tx: Record<string, unknown>) {
 /** Build a tx object with mock methods for role tests */
 function roleTx(overrides?: Record<string, unknown>) {
   return {
-    $queryRawUnsafe: vi.fn(),
+    $executeRawUnsafe: vi.fn(),
     role: {
       findUnique: vi.fn(),
       update: vi.fn().mockResolvedValue(undefined),
@@ -119,7 +119,7 @@ function roleTx(overrides?: Record<string, unknown>) {
 /** Build a tx object with mock methods for user tests */
 function userTx(overrides?: Record<string, unknown>) {
   return {
-    $queryRawUnsafe: vi.fn(),
+    $executeRawUnsafe: vi.fn(),
     user: {
       findMany: vi.fn(),
       update: vi.fn().mockResolvedValue(undefined),
@@ -457,7 +457,7 @@ describe("Roles API", () => {
       } as never);
 
       const txMock = {
-        $queryRawUnsafe: vi.fn(),
+        $executeRawUnsafe: vi.fn(),
         user: { findMany: vi.fn().mockResolvedValue([]) },
         userRole: { deleteMany: vi.fn().mockResolvedValue({ count: 2 }) },
         roleClaim: { deleteMany: vi.fn().mockResolvedValue({ count: 3 }) },
@@ -501,7 +501,7 @@ describe("Roles API", () => {
       } as never);
 
       const tx = {
-        $queryRawUnsafe: vi.fn(),
+        $executeRawUnsafe: vi.fn(),
         user: {
           findMany: vi
             .fn()
@@ -549,7 +549,7 @@ describe("Roles API", () => {
       } as never);
 
       const tx = {
-        $queryRawUnsafe: vi.fn(),
+        $executeRawUnsafe: vi.fn(),
         user: {
           findMany: vi
             .fn()
@@ -996,7 +996,7 @@ describe("Users API", () => {
     it("soft-deletes a user and revokes refresh tokens", async () => {
       mockAdminClaims();
       const tx = {
-        $queryRawUnsafe: vi.fn(),
+        $executeRawUnsafe: vi.fn(),
         user: {
           updateMany: vi.fn().mockResolvedValue({ count: 1 }),
           findMany: vi
@@ -1033,7 +1033,7 @@ describe("Users API", () => {
     it("blocks deactivation of the last user with admin claims", async () => {
       mockAdminClaims();
       const tx = {
-        $queryRawUnsafe: vi.fn(),
+        $executeRawUnsafe: vi.fn(),
         user: {
           updateMany: vi.fn().mockResolvedValue({ count: 1 }),
           findMany: vi.fn().mockResolvedValueOnce([]),

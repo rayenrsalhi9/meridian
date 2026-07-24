@@ -7,6 +7,7 @@ import {
 } from "shared";
 import { requireAuth } from "../middleware/auth.js";
 import { requireClaim } from "../middleware/requireClaim.js";
+import { resolveClaims } from "../services/authorization.service.js";
 import { rateLimiter } from "../lib/rate-limiter.js";
 import { parseBody } from "../lib/http.js";
 import {
@@ -77,15 +78,17 @@ router.put(
   "/:id",
   requireAuth,
   requireClaim("USER_MANAGE"),
-  async (req, res, next) => {
-    if (req.body?.roleIds !== undefined) {
-      return requireClaim("ROLE_MANAGE")(req, res, next);
-    }
-    next();
-  },
   async (req, res) => {
     const data = parseBody(updateUserSchema, req, res);
     if (!data) return;
+
+    if (data.roleIds !== undefined) {
+      const claims = await resolveClaims(req.user!.roleIds);
+      if (!claims.has("ROLE_MANAGE")) {
+        res.status(403).json({ error: "Insufficient permissions" });
+        return;
+      }
+    }
 
     const result = await updateUser(req.params.id as string, data);
     if ("error" in result) {

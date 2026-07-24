@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { ADMIN_CLAIM_KEYS } from "shared";
+import { ADMIN_CLAIM_KEYS_SET } from "shared";
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../db.js";
 import { BCRYPT_ROUNDS } from "../lib/auth.js";
@@ -11,7 +11,7 @@ class TxError extends Error {
   }
 }
 
-export const ADMIN_CLAIMS: Set<string> = new Set(ADMIN_CLAIM_KEYS);
+const ADMIN_CLAIMS = ADMIN_CLAIM_KEYS_SET;
 
 export const LAST_ADMIN_ERROR =
   "Cannot remove administrative privileges from the last admin user";
@@ -36,7 +36,10 @@ export async function ensureOtherAdminExists(
 ): Promise<AdminCheckResult | null> {
   if (userIdsPotentiallyLosingAdmin.length === 0) return null;
 
-  await tx.$queryRawUnsafe("SELECT pg_advisory_xact_lock(42)");
+  // ponytail: global lock, serializes all last-admin checks.
+  // Use a lock key derived from the operation context if concurrent
+  // deactivations of different users become a bottleneck.
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(42)`;
 
   const rows = await tx.user.findMany({
     where: { id: { notIn: userIdsPotentiallyLosingAdmin }, isActive: true },
